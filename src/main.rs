@@ -11,6 +11,9 @@ fn main() {
     let mut entities_plants: Vec<Plant> = Vec::new();
     let mut entities_rocks: Vec<Rock> = Vec::new();
 
+    // Create a matrix 256x256
+    let board = Board::new();
+
     // Plant object
     let plant = Plant {
         age: 0,
@@ -29,8 +32,6 @@ fn main() {
     };
     entities_rocks.push(rock);
 
-    // let mut entities_lifespan: Vec<Box<dyn Lifespan>> = Vec::new();
-
     loop {
         sleep(sleep_duration);
         if tick >= tick_max {
@@ -40,11 +41,9 @@ fn main() {
         let timestamp = || format!("{} tick: {}", Local::now(), tick);
         let indent = "    ".to_string();
         let indent_dyn = |level: u64| -> String {
-            let mut x = level.clone();
             let mut indent_string = "".to_string();
-            while x > 0 {
+            for _ in 0..level {
                 indent_string = indent_string + &indent;
-                x -= 1;
             }
             indent_string
         };
@@ -56,13 +55,20 @@ fn main() {
                 print!("{} {}\n", indent_dyn(1), m);
             }
             e.messages.clear();
-            if e.alive() {
-                print!("{} {:?}\n", indent_dyn(1), e);
+            print!("{} {}", indent_dyn(1), e.summary());
+            if !e.alive() {
+                print!(" [DEAD]");
             }
+            print!("\n");
+            // read current conditions for this plant
+            print!("{} {:?}\n", indent_dyn(2), board.matrix[e.location.x as usize][e.location.y as usize]);
+
         }
         for e in &entities_rocks {
             print!("{} {:?}\n", indent_dyn(1), e);
         }
+
+        // propagate environmental conditions to proper locations
 
         // evolve all entities
         for e in &mut entities_rocks {

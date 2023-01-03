@@ -1,11 +1,53 @@
 use rand::Rng;
 
+#[derive(Debug)]
+pub struct Board {
+    pub matrix: Vec<Vec<BoardSection>>,
+}
+
+impl Board {
+    pub fn new() -> Board {
+        const BOARD_SIZE: usize = 256;
+        // create an empty row
+        let mut matrix: Vec<Vec<BoardSection>> = Vec::new();
+        let mut row: Vec<BoardSection> = Vec::new();
+
+        for _ in 0..BOARD_SIZE {
+            let s = BoardSection {
+                conditions: Conditions {
+                    moisture: 0,
+                    oxygen: 0,
+                },
+            };
+            row.push(s);
+        }
+        for _ in 0..BOARD_SIZE {
+            matrix.push(row.clone());
+        }
+
+        Board {
+            matrix,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct BoardSection {
+    pub conditions: Conditions,
+}
+
+#[derive(Clone, Debug)]
+pub struct Conditions {
+    pub moisture: u64,
+    pub oxygen: u64,
+}
+
 /// Location
 #[derive(Clone, Debug)]
 pub struct Location {
-    max: u64,
-    x: u64,
-    y: u64,
+    pub max: u64,
+    pub x: u64,
+    pub y: u64,
 }
 
 impl Location {
@@ -42,6 +84,9 @@ pub struct Plant {
 }
 
 impl Plant {
+    pub fn summary(&self) -> String {
+        format!("Plant {{ kind: {:?} age: {:?}, health: {:?}, longevity: {:?} location: {:?}}}", self.kind, self.age, self.health, self.longevity, self.location)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -74,13 +119,15 @@ impl Lifespan for Plant {
     }
 
     fn biology(&mut self) {
-        self.age += 1;
-        // death upon exhaustion of lifespan
-        if self.age >= self.longevity {
-            self.health = 0;
+        if self.alive() {
+            self.age += 1;
+            // death upon exhaustion of lifespan
+            if self.age >= self.longevity {
+                self.health = 0;
+            }
+            // respiration
+            self.breathe();
         }
-        // respiration
-        self.breathe();
     }
 
     fn breathe(&self) {
