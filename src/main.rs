@@ -5,9 +5,9 @@ use sandbox::*;
 
 fn main() {
     let mut tick: u64 = 0;
-    let tick_max: u64 = 19;
+    let tick_max: u64 = 99;
     const BOARD_SIZE: usize = u8::MAX as usize;
-    let sleep_duration = time::Duration::from_millis(0);
+    let sleep_duration = time::Duration::from_millis(100);
 
     let mut entities_plants: Vec<Plant> = Vec::new();
     let mut entities_rocks: Vec<Rock> = Vec::new();
@@ -36,7 +36,7 @@ fn main() {
         health: 18,
         kind: PlantKind::Tree,
         location: Location::new_random(BOARD_SIZE),
-        longevity: 230,
+        longevity: 80,
         messages: Vec::new(),
         requirements: Requirements {
             light: Effect::Light(20),
@@ -53,10 +53,11 @@ fn main() {
     entities_rocks.push(rock);
 
     loop {
-        sleep(sleep_duration);
         if tick > tick_max {
             break;
         }
+        clear_screen();
+
         // establish prefix for log output
         let timestamp = || format!("{} tick: {}", Local::now(), tick);
         let indent = "    ".to_string();
@@ -83,12 +84,7 @@ fn main() {
             // determine initial based on plant kind
             map.plot_entity(location, initial);
         }
-
-        if tick == tick_max {
-            map.render(16);
-        } else {
-            map.render(16);
-        }
+        map.render(16);
 
         // print status
         print!("{}\n", timestamp());
@@ -127,5 +123,10 @@ fn main() {
 
        // check all living entities for death
         tick += 1;
+        sleep(sleep_duration);
     }
+}
+
+fn clear_screen() {
+    print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
 }
