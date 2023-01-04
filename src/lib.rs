@@ -11,9 +11,9 @@ impl Board {
         // create an empty row
         let mut matrix: Vec<Vec<BoardSection>> = Vec::new();
 
-        for x in 0..size { // x-axis
+        for x in 0..=size { // x-axis
             let mut row: Vec<BoardSection> = Vec::new();
-            for y in 0..size { // y-axis
+            for y in 0..=size { // y-axis
                 let s = BoardSection {
                     conditions: Conditions {
                         light: 0,
@@ -21,7 +21,7 @@ impl Board {
                         oxygen: 0,
                     },
                     location: Location {
-                        max: size - 1,
+                        max: size,
                         x: x as usize,
                         y: y as usize,
                     },
@@ -33,7 +33,7 @@ impl Board {
 
         Board {
             matrix,
-            size: size,
+            size,
         }
     }
 }
@@ -128,7 +128,7 @@ impl Location {
 
     pub fn new(max: usize) -> Location {
         let l = Location {
-            max: u8::MAX as usize,
+            max,
             x: 0,
             y: 0,
         };
@@ -154,16 +154,16 @@ impl Map<'_> {
     pub fn new(board: &Board) -> Map {
         // create empty rows
         let mut matrix: Vec<Vec<char>> = Vec::new();
-        for y in 0..board.size {
+        for y in 0..=board.size {
             let mut row: Vec<char> = Vec::new();
-            for x in 0..board.size {
+            for x in 0..board.size + 1 {
                 if x == 0 && y == 0 {
                     row.push('0');
                 } else {
                     row.push('.');
                 }
             }
-            if row.len() != board.size {
+            if row.len() != board.size + 1 {
                 panic!("row.len(): {}", row.len());
             }
             matrix.push(row);
@@ -190,7 +190,7 @@ impl Map<'_> {
 
         // check that row len is divisible
         if (row.len() % scale as usize) != 0 {
-            panic!("map size and scale factor are not evenly divisible");
+            panic!("map size and scale factor are not evenly divisible - row.len(): {}", row.len());
         }
 
         // split and process chunks
