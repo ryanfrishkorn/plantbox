@@ -6,7 +6,7 @@ use sandbox::*;
 fn main() {
     let mut tick: u64 = 0;
     let tick_max: u64 = 20;
-    const BOARD_SIZE: usize = 1 + u8::MAX as usize;
+    const BOARD_SIZE: usize = u8::MAX as usize;
     let sleep_duration = time::Duration::from_millis(0);
 
     let mut entities_plants: Vec<Plant> = Vec::new();
@@ -24,7 +24,7 @@ fn main() {
         kind: PlantKind::Fern,
         // location: Location::new_random(),
         location: Location {
-            max: BOARD_SIZE - 1,
+            max: BOARD_SIZE,
             x: 7,
             y: 7,
         },
@@ -44,7 +44,7 @@ fn main() {
         kind: PlantKind::Tree,
         // location: Location::new_random(),
         location: Location {
-            max: BOARD_SIZE - 1, // maximum value is one less than the size due to 0
+            max: BOARD_SIZE, // maximum value is one less than the size due to 0
             x: 7,
             y: 7,
         },
@@ -60,7 +60,7 @@ fn main() {
     // Rock object
     let rock = Rock {
         age: 0,
-        location: Location::new_random(BOARD_SIZE - 1),
+        location: Location::new_random(BOARD_SIZE),
     };
     entities_rocks.push(rock);
 
