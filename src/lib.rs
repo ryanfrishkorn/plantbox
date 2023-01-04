@@ -136,13 +136,13 @@ impl Location {
     }
 }
 
-pub struct Map<'a> {
-    pub board: &'a Board,
+pub struct Map {
+    pub board: Board,
     pub matrix: Vec<Vec<char>>,
     pub matrix_scaled: Vec<Vec<char>>,
 }
 
-impl Map<'_> {
+impl Map {
     fn flip_horizontal(matrix: &Vec<Vec<char>>) -> Vec<Vec<char>> {
         let mut matrix_flipped: Vec<Vec<char>> = Vec::new();
         matrix.clone_into(&mut matrix_flipped);
@@ -151,7 +151,7 @@ impl Map<'_> {
         matrix_flipped
     }
 
-    pub fn new(board: &Board) -> Map {
+    pub fn new(board: Board) -> Map {
         // create empty rows
         let mut matrix: Vec<Vec<char>> = Vec::new();
         for _y in 0..=board.size {
@@ -172,10 +172,15 @@ impl Map<'_> {
         }
     }
 
-    // Place X on locations occupied
-    pub fn plot_entities(&mut self, location: &Vec<Location>, c: char) {
+    /// Place character on specified Location.
+    pub fn plot_entity(&mut self, location: Location, c: char) {
+        self.matrix[location.x][location.y] = c;
+    }
+
+    /// Place character on vector of Location.
+    pub fn plot_entities(&mut self, locations: &Vec<Location>, c: char) {
         // plot each type of object
-        for l in location {
+        for l in locations {
             self.matrix[l.x][l.y] = c;
         }
     }
@@ -209,7 +214,13 @@ impl Map<'_> {
             if s == s_compare {
                 reduced.push('.'); // empty
             } else {
-                reduced.push('X'); // something present
+                // detect first character that is not '.'
+                let initials: Vec<char> = s.clone().chars().into_iter().filter_map(|c| { return if c != '.' { Some(c) } else { None } }).collect();
+                let i = match initials.first() {
+                    Some(c) => *c,
+                    _ => 'X',
+                };
+                reduced.push(i);
             }
         }
 

@@ -5,7 +5,7 @@ use sandbox::*;
 
 fn main() {
     let mut tick: u64 = 0;
-    let tick_max: u64 = 20;
+    let tick_max: u64 = 19;
     const BOARD_SIZE: usize = u8::MAX as usize;
     let sleep_duration = time::Duration::from_millis(0);
 
@@ -54,7 +54,7 @@ fn main() {
 
     loop {
         sleep(sleep_duration);
-        if tick >= tick_max {
+        if tick > tick_max {
             break;
         }
         // establish prefix for log output
@@ -67,6 +67,28 @@ fn main() {
             }
             indent_string
         };
+
+        // generate new map
+        let mut map = Map::new(board.clone());
+
+        let locations: Vec<Location> = entities_rocks.iter().map(|e| e.location.clone()).collect();
+        map.plot_entities(&locations, 'R');
+        // collect locations of plants that are alive
+        for e in entities_plants.iter().filter(|e| e.health > 0) {
+            let location = e.location.clone();
+            let initial = match e.kind {
+                PlantKind::Fern => 'F',
+                PlantKind::Tree => 'T',
+            };
+            // determine initial based on plant kind
+            map.plot_entity(location, initial);
+        }
+
+        if tick == tick_max {
+            map.render(16);
+        } else {
+            map.render(16);
+        }
 
         // print status
         print!("{}\n", timestamp());
@@ -103,19 +125,7 @@ fn main() {
             e.evolve(&mut board.matrix[e.location.x][e.location.y]);
         }
 
-        // check all living entities for death
+       // check all living entities for death
         tick += 1;
     }
-
-    let mut map = Map::new(&board);
-    let locations: Vec<Location> = entities_rocks.iter().map(|e| e.location.clone()).collect();
-    map.plot_entities(&locations, 'R');
-
-    // collect all plants living or dead
-    // let locations: Vec<Location> = entities_plants.iter().map(|e| e.location.clone()).collect();
-    //
-    // or only collect locations of things that are alive
-    let locations: Vec<Location> = entities_plants.iter().filter(|e| e.health > 0).map(|e| e.location.clone()).collect();
-    map.plot_entities(&locations, 'P');
-    map.render(16);
 }
