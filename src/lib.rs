@@ -218,42 +218,51 @@ impl Map<'_> {
 
         // scaled matrix x-axis
         for row in self.matrix.iter() {
-            // reduce x-axis
+            // reduce x-axis and push to row
             let row_scaled = self.reduce_row(row, scale);
-            // push to row
             self.matrix_scaled.push(row_scaled);
         }
-        // self.print_matrix(&self.matrix_scaled);
 
-        let matrix_rotated = self.rotate(&self.matrix_scaled);
+        let matrix_rotated = self.rotate(&self.matrix_scaled, true); // clockwise
         let mut matrix_scaled = Vec::new();
         for row in matrix_rotated.iter() {
             // reduce y-axis (we are rotated)
             let row_scaled = self.reduce_row(row, scale);
             matrix_scaled.push(row_scaled);
         }
-        // FIXME - This is janky and the function should be able to reverse itself.
-        let matrix_rotated = self.rotate(&matrix_scaled);
-        let matrix_rotated = self.rotate(&matrix_rotated);
-        let matrix_rotated = self.rotate(&matrix_rotated);
+        let matrix_rotated = self.rotate(&matrix_scaled, false); // counter-clockwise
 
         // Flip over horizontal axis so location { x: 0, y: 0 } begins at bottom left corner.
         self.matrix_scaled = Map::flip_horizontal(&matrix_rotated);
         self.print_matrix(&self.matrix_scaled);
     }
 
-    fn rotate(&self, matrix: &Vec<Vec<char>>) -> Vec<Vec<char>> {
+    fn rotate(&self, matrix: &Vec<Vec<char>>, clockwise: bool) -> Vec<Vec<char>> {
         let mut matrix_rotated: Vec<Vec<char>> = Vec::new();
-        let mut matrix_reversed: Vec<Vec<char>> = Vec::new();
-        matrix.clone_into(&mut matrix_reversed);
-        matrix_reversed.reverse();
-        // println!("matrix_reversed.len(): {}", matrix_reversed.len());
 
-        for i in 0..(matrix_reversed[0].len()) {
-            matrix_rotated.push(Vec::new());
-            for row in &matrix_reversed {
-                // println!("row[{}]: {}", i, row[i]);
-                matrix_rotated[i].push(row[i]);
+        if clockwise {
+            let mut matrix_reversed: Vec<Vec<char>> = Vec::new();
+            matrix.clone_into(&mut matrix_reversed);
+            matrix_reversed.reverse();
+
+            for i in 0..(matrix_reversed[0].len()) {
+                matrix_rotated.push(Vec::new());
+                for row in &matrix_reversed {
+                    matrix_rotated[i].push(row[i]);
+                }
+            }
+        } else {
+            let mut matrix_reversed: Vec<Vec<char>> = Vec::new();
+            matrix.clone_into(&mut matrix_reversed);
+            for row in &mut matrix_reversed {
+                row.reverse();
+            }
+
+            for i in 0..matrix_reversed[0].len() {
+                matrix_rotated.push(Vec::new());
+                for row in &matrix_reversed {
+                    matrix_rotated[i].push(row[i]);
+                }
             }
         }
 
