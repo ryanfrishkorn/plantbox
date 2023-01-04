@@ -13,21 +13,14 @@ fn main() {
     let mut entities_rocks: Vec<Rock> = Vec::new();
 
     // Create a matrix
-    println!("board size: {}", BOARD_SIZE);
     let mut board = Board::new(BOARD_SIZE);
-    // let mut map = Map::new(&board);
 
     // Plant object
     let plant = Plant {
         age: 0,
         health: 10,
         kind: PlantKind::Fern,
-        // location: Location::new_random(),
-        location: Location {
-            max: BOARD_SIZE,
-            x: 7,
-            y: 7,
-        },
+        location: Location::new_random(BOARD_SIZE),
         longevity: 12,
         messages: Vec::new(),
         requirements: Requirements {
@@ -42,12 +35,7 @@ fn main() {
         age: 0,
         health: 18,
         kind: PlantKind::Tree,
-        // location: Location::new_random(),
-        location: Location {
-            max: BOARD_SIZE, // maximum value is one less than the size due to 0
-            x: 7,
-            y: 7,
-        },
+        location: Location::new_random(BOARD_SIZE),
         longevity: 230,
         messages: Vec::new(),
         requirements: Requirements {
@@ -120,5 +108,14 @@ fn main() {
     }
 
     let mut map = Map::new(&board);
+    let locations: Vec<Location> = entities_rocks.iter().map(|e| e.location.clone()).collect();
+    map.plot_entities(&locations, 'R');
+
+    // collect all plants living or dead
+    // let locations: Vec<Location> = entities_plants.iter().map(|e| e.location.clone()).collect();
+    //
+    // or only collect locations of things that are alive
+    let locations: Vec<Location> = entities_plants.iter().filter(|e| e.health > 0).map(|e| e.location.clone()).collect();
+    map.plot_entities(&locations, 'P');
     map.render(16);
 }

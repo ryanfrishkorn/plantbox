@@ -154,14 +154,10 @@ impl Map<'_> {
     pub fn new(board: &Board) -> Map {
         // create empty rows
         let mut matrix: Vec<Vec<char>> = Vec::new();
-        for y in 0..=board.size {
+        for _y in 0..=board.size {
             let mut row: Vec<char> = Vec::new();
-            for x in 0..board.size + 1 {
-                if x == 0 && y == 0 {
-                    row.push('0');
-                } else {
-                    row.push('.');
-                }
+            for _x in 0..=board.size {
+                row.push('.');
             }
             if row.len() != board.size + 1 {
                 panic!("row.len(): {}", row.len());
@@ -173,6 +169,14 @@ impl Map<'_> {
             board,
             matrix: matrix.clone(),
             matrix_scaled: matrix,
+        }
+    }
+
+    // Place X on locations occupied
+    pub fn plot_entities(&mut self, location: &Vec<Location>, c: char) {
+        // plot each type of object
+        for l in location {
+            self.matrix[l.x][l.y] = c;
         }
     }
 
@@ -366,7 +370,7 @@ impl Rock {
 }
 
 impl Evolve for Rock {
-    fn evolve(&mut self, section: &mut BoardSection) {
+    fn evolve(&mut self, _section: &mut BoardSection) {
         self.age += 1
     }
 
