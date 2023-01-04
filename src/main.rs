@@ -6,13 +6,16 @@ use plantbox::*;
 fn main() {
     let mut tick: u64 = 0;
     let tick_max: u64 = 20;
-    let sleep_duration = time::Duration::from_millis(100);
+    const BOARD_SIZE: usize = 1 + u8::MAX as usize;
+    let sleep_duration = time::Duration::from_millis(0);
 
     let mut entities_plants: Vec<Plant> = Vec::new();
     let mut entities_rocks: Vec<Rock> = Vec::new();
 
-    // Create a matrix 256x256
-    let mut board = Board::new();
+    // Create a matrix
+    println!("board size: {}", BOARD_SIZE);
+    let mut board = Board::new(BOARD_SIZE);
+    // let mut map = Map::new(&board);
 
     // Plant object
     let plant = Plant {
@@ -21,7 +24,7 @@ fn main() {
         kind: PlantKind::Fern,
         // location: Location::new_random(),
         location: Location {
-            max: 256,
+            max: BOARD_SIZE - 1,
             x: 7,
             y: 7,
         },
@@ -41,7 +44,7 @@ fn main() {
         kind: PlantKind::Tree,
         // location: Location::new_random(),
         location: Location {
-            max: 256,
+            max: BOARD_SIZE - 1, // maximum value is one less than the size due to 0
             x: 7,
             y: 7,
         },
@@ -57,7 +60,7 @@ fn main() {
     // Rock object
     let rock = Rock {
         age: 0,
-        location: Location::new_random(),
+        location: Location::new_random(BOARD_SIZE - 1),
     };
     entities_rocks.push(rock);
 
@@ -115,4 +118,7 @@ fn main() {
         // check all living entities for death
         tick += 1;
     }
+
+    let mut map = Map::new(&board);
+    map.render(16);
 }
