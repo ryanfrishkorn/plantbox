@@ -1,13 +1,13 @@
-use rand::Rng;
+use rand::{Rng, rngs::StdRng, SeedableRng};
 
 #[derive(Clone, Debug)]
 pub struct Board {
     pub matrix: Vec<Vec<BoardSection>>,
-    pub size: usize,
+    pub size: i64,
 }
 
 impl Board {
-    pub fn new(size: usize) -> Board {
+    pub fn new(size: i64) -> Board {
         // create an empty row
         let mut matrix: Vec<Vec<BoardSection>> = Vec::new();
 
@@ -22,8 +22,8 @@ impl Board {
                     },
                     location: Location {
                         max: size,
-                        x: x as usize,
-                        y: y as usize,
+                        x: x as i64,
+                        y: y as i64,
                     },
                 };
                 row.push(s);
@@ -46,9 +46,9 @@ pub struct BoardSection {
 
 #[derive(Clone, Debug)]
 pub struct Conditions {
-    pub light: u64,
-    pub moisture: u64,
-    pub oxygen: u64,
+    pub light: i64,
+    pub moisture: i64,
+    pub oxygen: i64,
 }
 
 #[derive(Clone, Debug)]
@@ -77,18 +77,8 @@ impl Effect {
 
     pub fn append_to_section(&self, section: &mut BoardSection) {
         match self {
-            Effect::Light(v) => {
-                section.conditions.light = match section.conditions.light.checked_add_signed(*v) {
-                    Some(v) => v,
-                    None => 0,
-                }
-            },
-            Effect::Moisture(v) => {
-                section.conditions.moisture = match section.conditions.moisture.checked_add_signed(*v) {
-                    Some(v) => v,
-                    None => 0,
-                }
-            },
+            Effect::Light(v) => section.conditions.light += *v,
+            Effect::Moisture(v) => section.conditions.moisture += *v,
             _ => (),
         }
     }
@@ -96,10 +86,10 @@ impl Effect {
     pub fn apply_to_section(&self, section: &mut BoardSection) {
         match self {
             Effect::Light(v) => {
-                section.conditions.light = *v as u64;
+                section.conditions.light = *v as i64;
             },
             Effect::Moisture(v) => {
-                section.conditions.moisture = *v as u64;
+                section.conditions.moisture = *v as i64;
             }
             _ => (),
         }
@@ -109,34 +99,61 @@ impl Effect {
 /// Location
 #[derive(Clone, Debug)]
 pub struct Location {
-    pub max: usize,
-    pub x: usize,
-    pub y: usize,
+    pub max: i64,
+    pub x: i64,
+    pub y: i64,
 }
 
 impl Location {
     // return a vector of all surrounding locations
-    pub fn nearby(&self) {
-
+    pub fn nearby(&self) -> Vec<Location> {
+        // theoretical data
         // g - h - i    (0,2) - (1,2) - (2,2)
         // d - x - f    (0,1) - (1,1) - (2,1)
         // a - b - c    (0,0) - (1,0) - (2,0)
 
-        println!("location.max: {}", self.max);
-        let within_bounds = | l: (u64, u64) | -> bool {
-            if l.0 <= 2 && l.1 <= 2 {
-                return true
-            }
-            false
-        };
-
-        // do the math to generate all nearby location coordinates
         // corner case
-        let a = (0, 0); // [3] -> d (0,1) x (1,1) b (1,0)
+        // let a = (0, 0); // [3] -> d (0,1) x (1,1) b (1,0)
         // edge case
-        let h = (1, 2); // [5] -> d (0,1) d (0,1) x (1,1) f (2,1) i (2,2)
+        // let h = (1, 2); // [5] -> d (0,1) d (0,1) x (1,1) f (2,1) i (2,2)
         // optimal case
-        let x = (1, 1); // [8] -> a (0,0) d (0,1) g (0,2) h (1,2) i (2,2) f (2,1) c (2,0) b (1,0)
+        // let x = (1, 1); // [8] -> a (0,0) d (0,1) g (0,2) h (1,2) i (2,2) f (2,1) c (2,0) b (1,0)
+
+        let mut locations: Vec<Location> = Vec::new();
+
+        // subtract both to start at lower corner
+        let mut loc: Location = self.clone();
+        // a (0,0)
+        loc.x -= 1;
+        loc.y -= 1;
+        locations.push(loc.clone());
+        // b (1,0)
+        loc.x += 1; // b (1,0)
+        locations.push(loc.clone());
+        // c (2,0)
+        loc.x += 1;
+        locations.push(loc.clone());
+        // f (2,1)
+        loc.y += 1;
+        locations.push(loc.clone());
+        // i (2,2)
+        loc.y += 1;
+        locations.push(loc.clone());
+        // h (1,2)
+        loc.x -= 1;
+        locations.push(loc.clone());
+        // g (0, 2)
+        loc.x -= 1;
+        locations.push(loc.clone());
+        // d (0, 1)
+        loc.y -= 1;
+        locations.push(loc.clone());
+
+        // filter out all locations with negative coordinates
+        locations = locations.into_iter().filter(|c| { !c.x.is_negative() && !c.y.is_negative() }).collect();
+        // filter out all locations with coordinates beyond maximum
+        locations = locations.into_iter().filter(|c| { c.x <= self.max && c.y <= self.max }).collect();
+        locations
     }
 
     pub fn set_random(&mut self) {
@@ -144,13 +161,13 @@ impl Location {
         self.y = rand::thread_rng().gen_range(0..=self.max);
     }
 
-    pub fn new_random(max: usize) -> Location {
+    pub fn new_random(max: i64) -> Location {
         let mut l = Location::new(max);
         l.set_random();
         l
     }
 
-    pub fn new(max: usize) -> Location {
+    pub fn new(max: i64) -> Location {
         let l = Location {
             max,
             x: 0,
@@ -181,9 +198,9 @@ impl Map {
         for _y in 0..=board.size {
             let mut row: Vec<char> = Vec::new();
             for _x in 0..=board.size {
-                row.push('.');
+                row.push('⬛');
             }
-            if row.len() != board.size + 1 {
+            if row.len() as i64 != board.size + 1 {
                 panic!("row.len(): {}", row.len());
             }
             matrix.push(row);
@@ -198,14 +215,14 @@ impl Map {
 
     /// Place character on specified Location.
     pub fn plot_entity(&mut self, location: Location, c: char) {
-        self.matrix[location.x][location.y] = c;
+        self.matrix[location.x as usize][location.y as usize] = c;
     }
 
     /// Place character on vector of Location.
     pub fn plot_entities(&mut self, locations: &Vec<Location>, c: char) {
         // plot each type of object
         for l in locations {
-            self.matrix[l.x][l.y] = c;
+            self.matrix[l.x as usize][l.y as usize] = c;
         }
     }
 
@@ -218,7 +235,7 @@ impl Map {
         }
     }
 
-    fn reduce_row(&self, row: &Vec<char>, scale: u8) -> Vec<char> {
+    fn reduce_row(&self, row: &Vec<char>, scale: i64) -> Vec<char> {
         let mut reduced: Vec<char> = Vec::new();
 
         // check that row len is divisible
@@ -231,15 +248,18 @@ impl Map {
             let s: String = group.iter().collect();
             let mut s_compare = String::new();
             for _ in 0..scale {
-                s_compare.push('.');
+                // s_compare.push('.');
+                s_compare.push('⬛');
             }
 
             // println!("comparison - s: {} s_compare: {}", s, s_compare);
             if s == s_compare {
-                reduced.push('.'); // empty
+                // reduced.push('.'); // empty
+                reduced.push('⬛');
             } else {
                 // detect first character that is not '.'
-                let initials: Vec<char> = s.clone().chars().into_iter().filter_map(|c| { return if c != '.' { Some(c) } else { None } }).collect();
+                // let initials: Vec<char> = s.clone().chars().into_iter().filter_map(|c| { return if c != '.' { Some(c) } else { None } }).collect();
+                let initials: Vec<char> = s.clone().chars().into_iter().filter_map(|c| { return if c != '⬛' { Some(c) } else { None } }).collect();
                 let i = match initials.first() {
                     Some(c) => *c,
                     _ => 'X',
@@ -251,7 +271,7 @@ impl Map {
         reduced
     }
 
-    pub fn render(&mut self, scale: u8) {
+    pub fn render(&mut self, scale: i64) {
         // refresh from board reference
         self.matrix_scaled = Vec::new();
 
@@ -312,18 +332,18 @@ impl Map {
 /// Plant entity that has a limited lifespan
 #[derive(Clone, Debug)]
 pub struct Plant {
-    pub age: u64,
-    pub age_max: u64,
-    pub health: u64,
-    pub health_max: u64,
+    pub age: i64,
+    pub age_max: i64,
+    pub health: i64,
+    pub health_max: i64,
     pub kind: PlantKind,
     pub location: Location,
     pub messages: Vec<String>,
     pub offspring: Vec<Plant>,
-    pub offspring_modifier: i64,
+    pub offspring_chance: f64,
     pub requirements: Requirements,
-    pub size: u64,
-    pub size_max: u64,
+    pub size: i64,
+    pub size_max: i64,
 }
 
 #[derive(Clone, Debug)]
@@ -348,9 +368,9 @@ impl Plant {
         };
 
         // determine offspring factor
-        let offspring_modifier = match kind {
-            PlantKind::Fern => 0,
-            PlantKind::Tree => 0,
+        let offspring_chance = match kind {
+            PlantKind::Fern => 0.2,
+            PlantKind::Tree => 0.2,
         };
 
         // determine requirements based on kind
@@ -367,7 +387,7 @@ impl Plant {
 
         // determine size based on kind
         let size_max = match kind {
-            PlantKind::Fern => 2,
+            PlantKind::Fern => 8,
             PlantKind::Tree => 50,
         };
 
@@ -381,7 +401,7 @@ impl Plant {
             location: Location::new_random(board.size),
             messages: Vec::new(),
             offspring: Vec::new(),
-            offspring_modifier,
+            offspring_chance,
             requirements,
             size: 1,
             size_max,
@@ -451,9 +471,9 @@ impl Lifespan for Plant {
             // Respiration
             match self.requirements.moisture {
                 Effect::Moisture(v) => {
-                    if section.conditions.moisture >= v as u64 {
+                    if section.conditions.moisture >= v as i64 {
                         // consume moisture from section
-                        section.conditions.moisture -= v as u64;
+                        section.conditions.moisture -= v as i64;
                         // TODO: grow at this juncture (or signal immediately)
                         self.grow();
                         // TODO: we should probably bind entities to a BoardSection
@@ -466,8 +486,7 @@ impl Lifespan for Plant {
                         let size_percent =  self.size as f64 / self.size_max as f64;
                         if size_percent > 0.8 {
                             self.offspring = match spawn_chance {
-                                chance if chance > 0.90 => self.propagate(1),
-                                // chance if chance > 0.99 => self.propagate(2),
+                                chance if chance < self.offspring_chance => self.propagate(1),
                                 _ => vec![],
                             }
                         }
@@ -482,7 +501,7 @@ impl Lifespan for Plant {
         None
     }
 
-    fn damage(&mut self, damage: u64) {
+    fn damage(&mut self, damage: i64) {
         self.health = match self.health.checked_sub(damage) {
             Some(v) => v,
             None => 0,
@@ -499,25 +518,32 @@ impl Lifespan for Plant {
     }
 
     /// Optionally spawns new plants in nearby coordinates.
-    fn propagate(&mut self, num: u64) -> Vec<Plant> {
-        // TODO: determine possible nearby locations and choose
+    fn propagate(&mut self, num: i64) -> Vec<Plant> {
+        // determine nearby location
+        let mut rng = StdRng::from_entropy();
+        let locations = self.location.nearby();
+        let pick = rng.gen_range(0..locations.len());
+        let location = locations[pick].clone();
+
+        // create new seedling
         let sprout = Plant {
             age: 0,
             health: 1,
             health_max: self.health_max,
             kind: self.kind.clone(),
-            location: Location::new_random(self.location.max),
+            // location: Location::new_random(self.location.max),
+            location,
             age_max: self.age_max,
             messages: Vec::new(),
             offspring: Vec::new(),
-            offspring_modifier: self.offspring_modifier,
+            offspring_chance: self.offspring_chance,
             requirements: self.requirements.clone(),
             size: 1,
             size_max: self.size_max,
         };
         // change to spawn an extra offspring if health is at max
         let mut offspring: Vec<Plant> = Vec::new();
-        for _ in 0..num as i64 + self.offspring_modifier {
+        for _ in 0..num as i64 {
             offspring.push(sprout.clone());
         }
         return offspring;
@@ -525,7 +551,7 @@ impl Lifespan for Plant {
 }
 
 /// Rock entity that has a very long lifespan
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Rock {
     pub location: Location,
 }
@@ -547,7 +573,7 @@ pub trait Evolve {
 pub trait Lifespan {
     fn alive(&self) -> bool;
     fn biology(&mut self, section: &mut BoardSection) -> Option<Vec<Plant>>;
-    fn damage(&mut self, damage: u64);
+    fn damage(&mut self, damage: i64);
     fn grow(&mut self);
-    fn propagate(&mut self, num: u64) -> Vec<Plant>;
+    fn propagate(&mut self, num: i64) -> Vec<Plant>;
 }
