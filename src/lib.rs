@@ -289,13 +289,14 @@ impl Map {
 #[derive(Clone, Debug)]
 pub struct Plant {
     pub age: u64,
+    pub age_max: u64,
     pub health: u64,
     pub health_max: u64,
     pub kind: PlantKind,
     pub location: Location,
-    pub longevity: u64,
     pub messages: Vec<String>,
     pub offspring: Vec<Plant>,
+    pub offspring_modifier: i64,
     pub requirements: Requirements,
     pub size: u64,
     pub size_max: u64,
@@ -309,6 +310,25 @@ pub struct Requirements {
 
 impl Plant {
     pub fn new(kind: PlantKind, board: &Board) -> Plant {
+
+        // determine age_max
+        let age_max = match kind {
+            PlantKind::Fern => 12,
+            PlantKind::Tree => 80,
+        };
+
+        // determine health_max
+        let health_max = match kind {
+            PlantKind::Fern => 10,
+            PlantKind::Tree => 18,
+        };
+
+        // determine offspring factor
+        let offspring_modifier = match kind {
+            PlantKind::Fern => 0,
+            PlantKind::Tree => 0,
+        };
+
         // determine requirements based on kind
         let requirements = match kind {
             PlantKind::Fern => Requirements {
@@ -330,13 +350,14 @@ impl Plant {
         // Plant object
         let plant = Plant {
             age: 0,
+            age_max,
             health: 1,
-            health_max: 10,
+            health_max,
             kind,
             location: Location::new_random(board.size),
-            longevity: 12,
             messages: Vec::new(),
             offspring: Vec::new(),
+            offspring_modifier,
             requirements,
             size: 1,
             size_max,
@@ -345,7 +366,16 @@ impl Plant {
     }
 
     pub fn summary(&self) -> String {
-        format!("Plant {{ kind: {:?} age: {:?}, health: {:?}/{:?}, longevity: {:?} location: {:?}}}", self.kind, self.age, self.health, self.health_max, self.longevity, self.location)
+        format!("Plant {{ kind: {:?} age: {:?}/{:?}, health: {:?}/{:?}, size: {:?}/{:?} location: {:?}}}",
+                self.kind,
+                self.age,
+                self.age_max,
+                self.health,
+                self.health_max,
+                self.size,
+                self.size_max,
+                self.location,
+        )
     }
 }
 
@@ -385,10 +415,10 @@ impl Lifespan for Plant {
     }
 
     fn biology(&mut self, section: &mut BoardSection) -> Option<Vec<Plant>> {
+        self.age += 1;
         if self.alive() {
-            self.age += 1;
             // death upon exhaustion of lifespan
-            if self.age == self.longevity {
+            if self.age > self.age_max {
                 self.health = 0;
                 // do not continue if we are dead
                 return None;
@@ -402,12 +432,20 @@ impl Lifespan for Plant {
                         section.conditions.moisture -= v as u64;
                         // TODO: grow at this juncture (or signal immediately)
                         self.grow();
-                        // propagate on the second to last tick of life
-                        if self.age == self.longevity - 1 {
-                            let plants = self.propagate().unwrap();
-                            // TODO: we should probably bind entities to a BoardSection
-                            // then we can easily add plants from this scope.
-                            return Some(plants);
+                        // TODO: we should probably bind entities to a BoardSection
+                        // then we can easily add plants from this scope.
+
+                        // establish chance to propagate
+                        let spawn_chance: f64 = rand::thread_rng().gen();
+                        // if self.health == self.health_max {
+                        // must be mature to reproduce
+                        let size_percent =  self.size as f64 / self.size_max as f64;
+                        if size_percent > 0.8 {
+                            self.offspring = match spawn_chance {
+                                chance if chance > 0.90 => self.propagate(1),
+                                // chance if chance > 0.99 => self.propagate(2),
+                                _ => vec![],
+                            }
                         }
                     } else {
                         // take damage
@@ -437,29 +475,28 @@ impl Lifespan for Plant {
     }
 
     /// Optionally spawns new plants in nearby coordinates.
-    fn propagate(&mut self) -> Option<Vec<Plant>> {
-        // TODO: determine possible nearby locations and choose at random
-        /*
-        let location = Location {
-            max: u8::MAX as usize,
-            x: self.location.x,
-            y: self.location.y,
-        };
-         */
+    fn propagate(&mut self, num: u64) -> Vec<Plant> {
+        // TODO: determine possible nearby locations and choose
         let sprout = Plant {
             age: 0,
             health: 1,
-            health_max: 10, // TODO: determine this based on type
+            health_max: self.health_max,
             kind: self.kind.clone(),
             location: Location::new_random(self.location.max),
-            longevity: self.longevity,
+            age_max: self.age_max,
             messages: Vec::new(),
             offspring: Vec::new(),
+            offspring_modifier: self.offspring_modifier,
             requirements: self.requirements.clone(),
             size: 1,
             size_max: self.size_max,
         };
-        Some(vec![sprout])
+        // change to spawn an extra offspring if health is at max
+        let mut offspring: Vec<Plant> = Vec::new();
+        for _ in 0..num as i64 + self.offspring_modifier {
+            offspring.push(sprout.clone());
+        }
+        return offspring;
     }
 }
 
@@ -488,5 +525,5 @@ pub trait Lifespan {
     fn biology(&mut self, section: &mut BoardSection) -> Option<Vec<Plant>>;
     fn damage(&mut self, damage: u64);
     fn grow(&mut self);
-    fn propagate(&mut self) -> Option<Vec<Plant>>;
+    fn propagate(&mut self, num: u64) -> Vec<Plant>;
 }

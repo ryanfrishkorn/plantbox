@@ -6,8 +6,10 @@ use sandbox::*;
 fn main() {
     let mut tick: u64 = 0;
     let tick_max: u64 = 1000;
+    let map_scale = 8;
+    let plant_limit = 50;
     const BOARD_SIZE: usize = u8::MAX as usize;
-    let sleep_duration = time::Duration::from_millis(100);
+    let sleep_duration = time::Duration::from_millis(0);
 
     let mut entities_plants: Vec<Plant> = Vec::new();
     let mut entities_rocks: Vec<Rock> = Vec::new();
@@ -15,45 +17,9 @@ fn main() {
     // Create a matrix
     let mut board = Board::new(BOARD_SIZE);
 
-    // Plant object
-    let plant = Plant {
-        age: 0,
-        health: 10,
-        health_max: 10,
-        kind: PlantKind::Fern,
-        location: Location::new_random(BOARD_SIZE),
-        longevity: 12,
-        messages: Vec::new(),
-        offspring: Vec::new(),
-        requirements: Requirements {
-            light: Effect::Light(20),
-            moisture: Effect::Moisture(2),
-        },
-        size: 2,
-        size_max: 2,
-    };
-    entities_plants.push(plant);
-    // entities_plants.push(Plant::new(PlantKind::Fern, &board));
-    // entities_plants.push(Plant::new(PlantKind::Fern, &board));
-
-    // Tree object
-    let tree = Plant {
-        age: 0,
-        health: 18,
-        health_max: 18,
-        kind: PlantKind::Tree,
-        location: Location::new_random(BOARD_SIZE),
-        longevity: 80,
-        messages: Vec::new(),
-        offspring: Vec::new(),
-        requirements: Requirements {
-            light: Effect::Light(20),
-            moisture: Effect::Moisture(4),
-        },
-        size: 30,
-        size_max: 50,
-    };
-    entities_plants.push(tree);
+    // Add some plants
+    entities_plants.push(Plant::new(PlantKind::Fern, &board));
+    entities_plants.push(Plant::new(PlantKind::Tree, &board));
 
     // Rock object
     let rock = Rock {
@@ -93,7 +59,7 @@ fn main() {
             // determine initial based on plant kind
             map.plot_entity(location, initial);
         }
-        map.render(16);
+        map.render(map_scale);
 
         // print status
         print!("{}\n", timestamp());
@@ -105,11 +71,11 @@ fn main() {
             if e.alive() {
                 print!("{} {}\n", indent_dyn(1), e.summary());
                 // read current conditions for this plant
-                print!("{} {:?}\n", indent_dyn(2), board.matrix[e.location.x as usize][e.location.y as usize]);
+                // print!("{} {:?}\n", indent_dyn(2), board.matrix[e.location.x as usize][e.location.y as usize]);
             }
         }
-        for e in &entities_rocks {
-            print!("{} {:?}\n", indent_dyn(1), e);
+        for _e in &entities_rocks {
+            // print!("{} {:?}\n", indent_dyn(1), e);
         }
 
         // set all light values to zero before recalculation cycle
@@ -133,7 +99,7 @@ fn main() {
         let mut new_plants: Vec<Plant> = Vec::new();
         for e in &mut entities_plants {
             for p in &mut e.offspring {
-                print!("{} NEW {:?}\n", indent_dyn(1), p);
+                // print!("{} NEW {:?}\n", indent_dyn(1), p);
                 // sleep(sleep_duration * 10);
                 new_plants.push(p.clone());
             }
@@ -147,6 +113,11 @@ fn main() {
 
         // bring out your dead
         entities_plants.retain(|e| e.alive());
+
+        // exit if nothing is alive or we have too many items
+        if entities_plants.len() == 0 || entities_plants.len() > plant_limit {
+            break;
+        }
 
         tick += 1;
         sleep(sleep_duration);
