@@ -115,6 +115,30 @@ pub struct Location {
 }
 
 impl Location {
+    // return a vector of all surrounding locations
+    pub fn nearby(&self) {
+
+        // g - h - i    (0,2) - (1,2) - (2,2)
+        // d - x - f    (0,1) - (1,1) - (2,1)
+        // a - b - c    (0,0) - (1,0) - (2,0)
+
+        println!("location.max: {}", self.max);
+        let within_bounds = | l: (u64, u64) | -> bool {
+            if l.0 <= 2 && l.1 <= 2 {
+                return true
+            }
+            false
+        };
+
+        // do the math to generate all nearby location coordinates
+        // corner case
+        let a = (0, 0); // [3] -> d (0,1) x (1,1) b (1,0)
+        // edge case
+        let h = (1, 2); // [5] -> d (0,1) d (0,1) x (1,1) f (2,1) i (2,2)
+        // optimal case
+        let x = (1, 1); // [8] -> a (0,0) d (0,1) g (0,2) h (1,2) i (2,2) f (2,1) c (2,0) b (1,0)
+    }
+
     pub fn set_random(&mut self) {
         self.x = rand::thread_rng().gen_range(0..=self.max);
         self.y = rand::thread_rng().gen_range(0..=self.max);
