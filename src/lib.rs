@@ -290,11 +290,15 @@ impl Map {
 pub struct Plant {
     pub age: u64,
     pub health: u64,
+    pub health_max: u64,
     pub kind: PlantKind,
     pub location: Location,
     pub longevity: u64,
     pub messages: Vec<String>,
+    pub offspring: Vec<Plant>,
     pub requirements: Requirements,
+    pub size: u64,
+    pub size_max: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -304,8 +308,44 @@ pub struct Requirements {
 }
 
 impl Plant {
+    pub fn new(kind: PlantKind, board: &Board) -> Plant {
+        // determine requirements based on kind
+        let requirements = match kind {
+            PlantKind::Fern => Requirements {
+                light: Effect::Light(20),
+                moisture: Effect::Moisture(2),
+            },
+            PlantKind::Tree => Requirements {
+                light: Effect::Light(20),
+                moisture: Effect::Moisture(4),
+            },
+        };
+
+        // determine size based on kind
+        let size_max = match kind {
+            PlantKind::Fern => 2,
+            PlantKind::Tree => 50,
+        };
+
+        // Plant object
+        let plant = Plant {
+            age: 0,
+            health: 1,
+            health_max: 10,
+            kind,
+            location: Location::new_random(board.size),
+            longevity: 12,
+            messages: Vec::new(),
+            offspring: Vec::new(),
+            requirements,
+            size: 1,
+            size_max,
+        };
+        plant
+    }
+
     pub fn summary(&self) -> String {
-        format!("Plant {{ kind: {:?} age: {:?}, health: {:?}, longevity: {:?} location: {:?}}}", self.kind, self.age, self.health, self.longevity, self.location)
+        format!("Plant {{ kind: {:?} age: {:?}, health: {:?}/{:?}, longevity: {:?} location: {:?}}}", self.kind, self.age, self.health, self.health_max, self.longevity, self.location)
     }
 }
 
@@ -319,14 +359,20 @@ impl Evolve for Plant {
     fn evolve(&mut self, section: &mut BoardSection) {
         // Save current state for comparison after evolution
         let previous = self.clone();
-        self.biology(section);
+        let offspring = self.biology(section);
+
+        // check for returned propagation
+        match offspring {
+            Some(offspring) => {
+                for o in offspring {
+                    self.offspring.push(o);
+                }
+            },
+            None => (),
+        }
         if self.health == 0 && previous.health != 0 {
             self.messages.push(format!("The {:?} perishes", self.kind));
         }
-    }
-
-    fn print_age(&self) {
-        println!("plant age: {}", self.age);
     }
 }
 
@@ -338,12 +384,14 @@ impl Lifespan for Plant {
         false
     }
 
-    fn biology(&mut self, section: &mut BoardSection) {
+    fn biology(&mut self, section: &mut BoardSection) -> Option<Vec<Plant>> {
         if self.alive() {
             self.age += 1;
             // death upon exhaustion of lifespan
-            if self.age >= self.longevity {
+            if self.age == self.longevity {
                 self.health = 0;
+                // do not continue if we are dead
+                return None;
             }
 
             // Respiration
@@ -352,6 +400,15 @@ impl Lifespan for Plant {
                     if section.conditions.moisture >= v as u64 {
                         // consume moisture from section
                         section.conditions.moisture -= v as u64;
+                        // TODO: grow at this juncture (or signal immediately)
+                        self.grow();
+                        // propagate on the second to last tick of life
+                        if self.age == self.longevity - 1 {
+                            let plants = self.propagate().unwrap();
+                            // TODO: we should probably bind entities to a BoardSection
+                            // then we can easily add plants from this scope.
+                            return Some(plants);
+                        }
                     } else {
                         // take damage
                         self.damage(1);
@@ -360,6 +417,7 @@ impl Lifespan for Plant {
                 _ => (),
             }
         }
+        None
     }
 
     fn damage(&mut self, damage: u64) {
@@ -368,12 +426,46 @@ impl Lifespan for Plant {
             None => 0,
         }
     }
+
+    fn grow(&mut self) {
+        if self.health < self.health_max {
+            self.health += 1;
+        }
+        if self.size < self.size_max {
+            self.size += 1;
+        }
+    }
+
+    /// Optionally spawns new plants in nearby coordinates.
+    fn propagate(&mut self) -> Option<Vec<Plant>> {
+        // TODO: determine possible nearby locations and choose at random
+        /*
+        let location = Location {
+            max: u8::MAX as usize,
+            x: self.location.x,
+            y: self.location.y,
+        };
+         */
+        let sprout = Plant {
+            age: 0,
+            health: 1,
+            health_max: 10, // TODO: determine this based on type
+            kind: self.kind.clone(),
+            location: Location::new_random(self.location.max),
+            longevity: self.longevity,
+            messages: Vec::new(),
+            offspring: Vec::new(),
+            requirements: self.requirements.clone(),
+            size: 1,
+            size_max: self.size_max,
+        };
+        Some(vec![sprout])
+    }
 }
 
 /// Rock entity that has a very long lifespan
 #[derive(Debug)]
 pub struct Rock {
-    pub age: u64,
     pub location: Location,
 }
 
@@ -382,11 +474,6 @@ impl Rock {
 
 impl Evolve for Rock {
     fn evolve(&mut self, _section: &mut BoardSection) {
-        self.age += 1
-    }
-
-    fn print_age(&self) {
-        println!("rock age: {}", self.age);
     }
 }
 
@@ -394,11 +481,12 @@ impl Evolve for Rock {
 /// time should be invoked through this trait.
 pub trait Evolve {
     fn evolve(&mut self, section: &mut BoardSection);
-    fn print_age(&self);
 }
 
 pub trait Lifespan {
     fn alive(&self) -> bool;
-    fn biology(&mut self, section: &mut BoardSection);
+    fn biology(&mut self, section: &mut BoardSection) -> Option<Vec<Plant>>;
     fn damage(&mut self, damage: u64);
+    fn grow(&mut self);
+    fn propagate(&mut self) -> Option<Vec<Plant>>;
 }

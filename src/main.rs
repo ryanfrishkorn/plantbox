@@ -5,7 +5,7 @@ use sandbox::*;
 
 fn main() {
     let mut tick: u64 = 0;
-    let tick_max: u64 = 99;
+    let tick_max: u64 = 1000;
     const BOARD_SIZE: usize = u8::MAX as usize;
     let sleep_duration = time::Duration::from_millis(100);
 
@@ -19,35 +19,44 @@ fn main() {
     let plant = Plant {
         age: 0,
         health: 10,
+        health_max: 10,
         kind: PlantKind::Fern,
         location: Location::new_random(BOARD_SIZE),
         longevity: 12,
         messages: Vec::new(),
+        offspring: Vec::new(),
         requirements: Requirements {
             light: Effect::Light(20),
             moisture: Effect::Moisture(2),
-        }
+        },
+        size: 2,
+        size_max: 2,
     };
     entities_plants.push(plant);
+    // entities_plants.push(Plant::new(PlantKind::Fern, &board));
+    // entities_plants.push(Plant::new(PlantKind::Fern, &board));
 
     // Tree object
     let tree = Plant {
         age: 0,
         health: 18,
+        health_max: 18,
         kind: PlantKind::Tree,
         location: Location::new_random(BOARD_SIZE),
         longevity: 80,
         messages: Vec::new(),
+        offspring: Vec::new(),
         requirements: Requirements {
             light: Effect::Light(20),
             moisture: Effect::Moisture(4),
-        }
+        },
+        size: 30,
+        size_max: 50,
     };
     entities_plants.push(tree);
 
     // Rock object
     let rock = Rock {
-        age: 0,
         location: Location::new_random(BOARD_SIZE),
     };
     entities_rocks.push(rock);
@@ -117,11 +126,28 @@ fn main() {
         for e in &mut entities_rocks {
             e.evolve(&mut board.matrix[e.location.x][e.location.y]);
         }
+
         for e in &mut entities_plants {
             e.evolve(&mut board.matrix[e.location.x][e.location.y]);
         }
+        let mut new_plants: Vec<Plant> = Vec::new();
+        for e in &mut entities_plants {
+            for p in &mut e.offspring {
+                print!("{} NEW {:?}\n", indent_dyn(1), p);
+                // sleep(sleep_duration * 10);
+                new_plants.push(p.clone());
+            }
+            e.offspring.clear();
+        }
+        // push new offspring
+        for plant in new_plants {
+            entities_plants.push(plant);
+        }
+        println!("Plants: {}", entities_plants.len());
 
-       // check all living entities for death
+        // bring out your dead
+        entities_plants.retain(|e| e.alive());
+
         tick += 1;
         sleep(sleep_duration);
     }
