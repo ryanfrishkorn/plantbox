@@ -7,9 +7,9 @@ fn main() {
     let mut tick: u64 = 0;
     let tick_max: u64 = 1000;
     let map_scale = 8;
-    let plant_limit = 50;
+    let plant_limit = 20;
     const BOARD_SIZE: usize = u8::MAX as usize;
-    let sleep_duration = time::Duration::from_millis(0);
+    let sleep_duration = time::Duration::from_millis(100);
 
     let mut entities_plants: Vec<Plant> = Vec::new();
     let mut entities_rocks: Vec<Rock> = Vec::new();
@@ -71,7 +71,7 @@ fn main() {
             if e.alive() {
                 print!("{} {}\n", indent_dyn(1), e.summary());
                 // read current conditions for this plant
-                // print!("{} {:?}\n", indent_dyn(2), board.matrix[e.location.x as usize][e.location.y as usize]);
+                print!("{} {:?}\n", indent_dyn(2), board.matrix[e.location.x as usize][e.location.y as usize]);
             }
         }
         for _e in &entities_rocks {
@@ -109,18 +109,25 @@ fn main() {
         for plant in new_plants {
             entities_plants.push(plant);
         }
-        println!("Plants: {}", entities_plants.len());
 
         // bring out your dead
         entities_plants.retain(|e| e.alive());
 
+        println!("Plants: {}", entities_plants.len());
         // exit if nothing is alive or we have too many items
-        if entities_plants.len() == 0 || entities_plants.len() > plant_limit {
+        if entities_plants.len() == 0 {
             break;
+        }
+        if entities_plants.len() > plant_limit {
+            // print!("PLANT LIMIT REACHED (clearing)\n");
+            // sleep(sleep_duration * 10);
+            entities_plants.clear();
+            entities_plants.push(Plant::new(PlantKind::Fern, &board));
+            entities_plants.push(Plant::new(PlantKind::Tree, &board));
         }
 
         tick += 1;
-        sleep(sleep_duration);
+        // sleep(sleep_duration);
     }
 }
 
