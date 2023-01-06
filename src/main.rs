@@ -4,17 +4,19 @@ use std::time;
 use plantbox::*;
 
 fn main() {
+    // Map and Board values are interdependent
     const BOARD_SIZE: i64 = 256; // doubling this should result in 4x plant_limit
     const BOARD_MAX: usize = (BOARD_SIZE - 1) as usize;
-    const BOARD_UNIT: i64 = 8;
+    const BOARD_UNIT: i64 = 16;
 
-    let map_scale: i64 = BOARD_SIZE / (BOARD_UNIT * 2 * 2);
-    // let map_scale: i64 = 1;
-    println!("MAP_SCALE: {}", map_scale);
-    let plant_limit_base: i64 = 62; // derived from theoretical board of 8
-    // let plant_limit_base: i64 = 250; // derived from theoretical board of 16
+    // let map_scale: i64 = BOARD_SIZE / (BOARD_UNIT) / (2 * 2); // this produces 64x64
+    let map_scale: i64 = BOARD_SIZE / (BOARD_UNIT) / 2; // this produces 32x32
+    // let map_scale: i64 = 1; // this produces a map of actual size
+    // let plant_limit_base: i64 = 62; // derived from theoretical board of 8
+    let plant_limit_base: i64 = 250; // derived from theoretical board of 16
     let plant_limit: i64 = ((BOARD_SIZE / BOARD_UNIT) * (BOARD_SIZE / BOARD_UNIT)) * plant_limit_base;
 
+    // Iteration and sleep
     let sleep_duration = time::Duration::from_millis(0);
     let mut tick: u64 = 0;
     let tick_max: u64 = 0; // 0 for no limit
