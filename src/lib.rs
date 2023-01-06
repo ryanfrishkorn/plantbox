@@ -184,12 +184,18 @@ pub struct Map {
 }
 
 impl Map {
-    fn flip_horizontal(matrix: &Vec<Vec<char>>) -> Vec<Vec<char>> {
-        let mut matrix_flipped: Vec<Vec<char>> = Vec::new();
-        matrix.clone_into(&mut matrix_flipped);
-        matrix_flipped.reverse();
+    #[allow(dead_code)]
+    fn flip_horizontal(&mut self) {
+        self.matrix_scaled.reverse();
+    }
 
-        matrix_flipped
+    fn flip_vertical(&mut self) {
+        let matrix: Vec<Vec<char>> = self.matrix_scaled.clone();
+        self.matrix_scaled.clear();
+        for mut v in matrix {
+            v.reverse();
+            self.matrix_scaled.push(v);
+        }
     }
 
     pub fn new(board: Board) -> Map {
@@ -226,12 +232,43 @@ impl Map {
         }
     }
 
-    fn print_matrix(&self, matrix: &Vec<Vec<char>>) {
-        for row in matrix {
+    #[allow(dead_code)]
+    fn print_matrix(&self) {
+        for row in &self.matrix_scaled {
             for c in row {
                 print!("{} ", c);
             }
             print!("\n");
+        }
+    }
+
+    #[allow(dead_code)]
+    fn print_matrix_debug(&self) {
+        // Note: All indices printed are respective to the map, not the board or entity locations.
+
+        // matrix[o][] iterate over outer vector
+        for (o, outer) in self.matrix_scaled.iter().enumerate() {
+            // print single value per row for MAP axis label
+            let o_label = (self.matrix_scaled.len() - 1) - o;
+            print!("y {:>2} ", o_label);
+
+            // print actual data is which flows along the ascending x-axis
+            for c in outer {
+                print!("{:<2}", c);
+            }
+            print!("\n");
+        }
+
+        // outer iteration print all MAP indices for easy debugging
+        for (o, outer) in self.matrix_scaled.iter().enumerate() {
+            if o == 0 {
+                print!("   x ");
+                // matrix[][i] iterate over inner vector
+                for (i, _inner) in outer.iter().enumerate() {
+                    print!("{:>2} ", i);
+                }
+                print!("\n");
+            }
         }
     }
 
@@ -273,35 +310,43 @@ impl Map {
 
     pub fn render(&mut self, scale: i64) {
         // refresh from board reference
-        self.matrix_scaled = Vec::new();
+        self.matrix_scaled.clear();
+        self.matrix_scaled = self.matrix.clone();
 
         // scaled matrix x-axis
-        for row in self.matrix.iter() {
+        let mut m: Vec<Vec<char>>;
+        m = self.matrix_scaled.clone();
+        self.matrix_scaled.clear();
+        for row in &m {
+            // self.matrix_scaled.clear();
             // reduce x-axis and push to row
-            let row_scaled = self.reduce_row(row, scale);
+            let row_scaled = self.reduce_row(&row, scale);
             self.matrix_scaled.push(row_scaled);
         }
 
-        let matrix_rotated = self.rotate(&self.matrix_scaled, true); // clockwise
-        let mut matrix_scaled = Vec::new();
-        for row in matrix_rotated.iter() {
+        self.flip_vertical();
+        self.rotate(true);
+        m.clear();
+        m = self.matrix_scaled.clone();
+        self.matrix_scaled.clear();
+        for row in &m {
             // reduce y-axis (we are rotated)
             let row_scaled = self.reduce_row(row, scale);
-            matrix_scaled.push(row_scaled);
+            self.matrix_scaled.push(row_scaled);
         }
-        let matrix_rotated = self.rotate(&matrix_scaled, false); // counter-clockwise
+        self.flip_vertical();
 
-        // Flip over horizontal axis so location { x: 0, y: 0 } begins at bottom left corner.
-        self.matrix_scaled = Map::flip_horizontal(&matrix_rotated);
-        self.print_matrix(&self.matrix_scaled);
+        self.print_matrix_debug();
+        // self.print_matrix();
     }
 
-    fn rotate(&self, matrix: &Vec<Vec<char>>, clockwise: bool) -> Vec<Vec<char>> {
+    // fn rotate(&self, matrix: &Vec<Vec<char>>, clockwise: bool) -> Vec<Vec<char>> {
+    fn rotate(&mut self, clockwise: bool) {
         let mut matrix_rotated: Vec<Vec<char>> = Vec::new();
 
         if clockwise {
             let mut matrix_reversed: Vec<Vec<char>> = Vec::new();
-            matrix.clone_into(&mut matrix_reversed);
+            self.matrix_scaled.clone_into(&mut matrix_reversed);
             matrix_reversed.reverse();
 
             for i in 0..(matrix_reversed[0].len()) {
@@ -312,7 +357,7 @@ impl Map {
             }
         } else {
             let mut matrix_reversed: Vec<Vec<char>> = Vec::new();
-            matrix.clone_into(&mut matrix_reversed);
+            self.matrix_scaled.clone_into(&mut matrix_reversed);
             for row in &mut matrix_reversed {
                 row.reverse();
             }
@@ -325,7 +370,7 @@ impl Map {
             }
         }
 
-        matrix_rotated
+        self.matrix_scaled = matrix_rotated;
     }
 }
 
