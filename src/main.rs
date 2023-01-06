@@ -35,11 +35,10 @@ fn main() {
     entities_plants.push(Plant::new(PlantKind::Tree, &board));
     entities_plants.push(Plant::new(PlantKind::Tree, &board));
 
-    // Rock object
-    entities_rocks.push(Rock { location: Location::new_random(BOARD_MAX as i64) });
-    entities_rocks.push(Rock { location: Location::new_random(BOARD_MAX as i64) });
-    entities_rocks.push(Rock { location: Location::new_random(BOARD_MAX as i64) });
-    entities_rocks.push(Rock { location: Location::new_random(BOARD_MAX as i64) });
+    // Rock objects
+    for _ in 0..30 {
+        entities_rocks.push(Rock { location: Location::new_random(BOARD_MAX as i64) });
+    }
 
     loop {
         if tick > tick_max && tick_max != 0 {
@@ -61,20 +60,19 @@ fn main() {
         // generate new map
         let mut map = Map::new(board.clone());
 
-        let locations: Vec<Location> = entities_rocks.iter().map(|e| e.location.clone()).collect();
-        // map.plot_entities(&locations, 'R');
-        // map.plot_entities(&locations, '🗿');
-        map.plot_entities(&locations, '🪨');
         // collect locations of plants that are alive
         for e in entities_plants.iter().filter(|e| e.health > 0) {
-            let location = e.location.clone();
             let initial = match e.kind {
                 PlantKind::Fern => '🌿',
                 PlantKind::Tree => '🌲',
             };
             // determine initial based on plant kind
-            map.plot_entity(location, initial);
+            map.plot_entity(&e.location, initial);
         }
+
+        // Plot rock entities last so they are not overwritten by plants and can take display precedence
+        let rock_locations: Vec<Location> = entities_rocks.iter().map(|e| e.location.clone()).collect();
+        map.plot_entities(&rock_locations, '🪨');
         map.render(map_scale);
         println!("map_scale: {}", map_scale);
 
@@ -91,9 +89,11 @@ fn main() {
                 // print!("{} {:?}\n", indent_dyn(2), board.matrix[e.location.x as usize][e.location.y as usize]);
             }
         }
+        /*
         for e in &entities_rocks {
             print!("{} {:?}\n", indent_dyn(1), e);
         }
+         */
 
         // set all light values to zero before recalculation cycle
         Effect::Light(0).apply_global(&mut board);
