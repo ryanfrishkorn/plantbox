@@ -220,7 +220,7 @@ impl Map {
     }
 
     /// Place character on specified Location.
-    pub fn plot_entity(&mut self, location: Location, c: char) {
+    pub fn plot_entity(&mut self, location: &Location, c: char) {
         self.matrix[location.x as usize][location.y as usize] = c;
     }
 
@@ -283,6 +283,7 @@ impl Map {
         // split and process chunks
         for group in row.chunks(scale as usize) {
             let s: String = group.iter().collect();
+            // create comparison string to match empty case
             let mut s_compare = String::new();
             for _ in 0..scale {
                 // s_compare.push('.');
@@ -294,13 +295,19 @@ impl Map {
                 // reduced.push('.'); // empty
                 reduced.push('⬛');
             } else {
-                // detect first character that is not '.'
+                // gather all characters that are not default
                 // let initials: Vec<char> = s.clone().chars().into_iter().filter_map(|c| { return if c != '.' { Some(c) } else { None } }).collect();
                 let initials: Vec<char> = s.clone().chars().into_iter().filter_map(|c| { return if c != '⬛' { Some(c) } else { None } }).collect();
-                let i = match initials.first() {
-                    Some(c) => *c,
-                    _ => 'X',
-                };
+                // print!("{:?} ", initials);
+
+                // look for rock and give it precedence, otherwise print first non-empty char
+                let mut i: char = '🪨';
+                if initials.contains(&'🪨') == false {
+                    i = match initials.first() {
+                        Some(c) => *c,
+                        _ => 'X',
+                    }
+                }
                 reduced.push(i);
             }
         }
@@ -536,7 +543,8 @@ impl Lifespan for Plant {
                             }
                         }
                     } else {
-                        // take damage
+                        // use all available moisture even though we take damage
+                        section.conditions.moisture = 0;
                         self.damage(1);
                     }
                 },
