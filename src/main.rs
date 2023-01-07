@@ -1,7 +1,20 @@
+pub mod board;
+pub mod evolve;
+pub mod plant;
+pub mod rock;
+pub mod map;
+
+// external
 use chrono::Local;
 use std::thread::sleep;
 use std::time;
-use sandbox::*;
+
+// internal
+use board::{Board, Effect, Location};
+use map::{Map};
+use plant::{Plant, PlantKind};
+use rock::{Rock};
+use evolve::{Evolve, Lifespan};
 
 fn main() {
     // Map and Board values are interdependent
@@ -28,12 +41,12 @@ fn main() {
     let mut board = Board::new(BOARD_MAX as i64);
 
     // Add some plants
-    entities_plants.push(Plant::new(PlantKind::Fern, &board));
-    entities_plants.push(Plant::new(PlantKind::Fern, &board));
-    entities_plants.push(Plant::new(PlantKind::Fern, &board));
-    entities_plants.push(Plant::new(PlantKind::Fern, &board));
-    entities_plants.push(Plant::new(PlantKind::Tree, &board));
-    entities_plants.push(Plant::new(PlantKind::Tree, &board));
+    for _ in 0..8 {
+        entities_plants.push(Plant::new(PlantKind::Fern, &board));
+    }
+    for _ in 0..8 {
+        entities_plants.push(Plant::new(PlantKind::Tree, &board));
+    }
 
     // Rock objects
     for _ in 0..30 {
@@ -89,7 +102,15 @@ fn main() {
                 // print!("{} {:?}\n", indent_dyn(2), board.matrix[e.location.x as usize][e.location.y as usize]);
             }
         }
+        // show first rock
+        match &entities_rocks.first() {
+            Some(e) => {
+                print!("{} {:?}\n", indent_dyn(1), e);
+            },
+            None => (),
+        }
         /*
+        // show all rocks
         for e in &entities_rocks {
             print!("{} {:?}\n", indent_dyn(1), e);
         }
