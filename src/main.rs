@@ -1,8 +1,8 @@
 pub mod board;
 pub mod evolve;
+pub mod map;
 pub mod plant;
 pub mod rock;
-pub mod map;
 
 // external
 use chrono::Local;
@@ -11,10 +11,10 @@ use std::time;
 
 // internal
 use board::{Board, Effect, Location};
-use map::{Map};
-use plant::{Plant, PlantKind};
-use rock::{Rock};
 use evolve::{Evolve, Lifespan};
+use map::Map;
+use plant::{Plant, PlantKind};
+use rock::Rock;
 
 fn main() {
     // Map and Board values are interdependent
@@ -24,10 +24,11 @@ fn main() {
 
     // let map_scale: i64 = BOARD_SIZE / (BOARD_UNIT) / (2 * 2); // this produces 64x64
     let map_scale: i64 = BOARD_SIZE / (BOARD_UNIT) / 2; // this produces 32x32
-    // let map_scale: i64 = 1; // this produces a map of actual size
-    // let plant_limit_base: i64 = 62; // derived from theoretical board of 8
+                                                        // let map_scale: i64 = 1; // this produces a map of actual size
+                                                        // let plant_limit_base: i64 = 62; // derived from theoretical board of 8
     let plant_limit_base: i64 = 250; // derived from theoretical board of 16
-    let plant_limit: i64 = ((BOARD_SIZE / BOARD_UNIT) * (BOARD_SIZE / BOARD_UNIT)) * plant_limit_base;
+    let plant_limit: i64 =
+        ((BOARD_SIZE / BOARD_UNIT) * (BOARD_SIZE / BOARD_UNIT)) * plant_limit_base;
 
     // Iteration and sleep
     let sleep_duration = time::Duration::from_millis(0);
@@ -50,7 +51,9 @@ fn main() {
 
     // Rock objects
     for _ in 0..30 {
-        entities_rocks.push(Rock { location: Location::new_random(BOARD_MAX as i64) });
+        entities_rocks.push(Rock {
+            location: Location::new_random(BOARD_MAX as i64),
+        });
     }
 
     loop {
@@ -75,16 +78,13 @@ fn main() {
 
         // collect locations of plants that are alive
         for e in entities_plants.iter().filter(|e| e.health > 0) {
-            let initial = match e.kind {
-                PlantKind::Fern => '🌿',
-                PlantKind::Tree => '🌲',
-            };
             // determine initial based on plant kind
-            map.plot_entity(&e.location, initial);
+            map.plot_entity(&e.location, e.kind.icon());
         }
 
         // Plot rock entities last so they are not overwritten by plants and can take display precedence
-        let rock_locations: Vec<Location> = entities_rocks.iter().map(|e| e.location.clone()).collect();
+        let rock_locations: Vec<Location> =
+            entities_rocks.iter().map(|e| e.location.clone()).collect();
         map.plot_entities(&rock_locations, '🪨');
         map.render(map_scale);
         println!("map_scale: {}", map_scale);
@@ -106,7 +106,7 @@ fn main() {
         match &entities_rocks.first() {
             Some(e) => {
                 print!("{} {:?}\n", indent_dyn(1), e);
-            },
+            }
             None => (),
         }
         /*
@@ -151,7 +151,12 @@ fn main() {
         // bring out your dead
         entities_plants.retain(|e| e.alive());
 
-        print!("{} plants: {}/{}\n", Local::now(), entities_plants.len(), plant_limit);
+        print!(
+            "{} plants: {}/{}\n",
+            Local::now(),
+            entities_plants.len(),
+            plant_limit
+        );
 
         // clear and replant if plant limit is reached
         if entities_plants.len() > plant_limit as usize {

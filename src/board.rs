@@ -1,4 +1,4 @@
-use rand::{Rng};
+use rand::Rng;
 
 #[derive(Clone, Debug)]
 pub struct Board {
@@ -11,9 +11,11 @@ impl Board {
         // create an empty row
         let mut matrix: Vec<Vec<BoardSection>> = Vec::new();
 
-        for x in 0..=size { // x-axis
+        for x in 0..=size {
+            // x-axis
             let mut row: Vec<BoardSection> = Vec::new();
-            for y in 0..=size { // y-axis
+            for y in 0..=size {
+                // y-axis
                 let s = BoardSection {
                     conditions: Conditions {
                         light: 0,
@@ -31,10 +33,7 @@ impl Board {
             matrix.push(row);
         }
 
-        Board {
-            matrix,
-            size,
-        }
+        Board { matrix, size }
     }
 }
 
@@ -87,7 +86,7 @@ impl Effect {
         match self {
             Effect::Light(v) => {
                 section.conditions.light = *v as i64;
-            },
+            }
             Effect::Moisture(v) => {
                 section.conditions.moisture = *v as i64;
             }
@@ -97,7 +96,7 @@ impl Effect {
 }
 
 /// Location
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Location {
     pub max: i64,
     pub x: i64,
@@ -150,9 +149,46 @@ impl Location {
         locations.push(loc.clone());
 
         // filter out all locations with negative coordinates
-        locations = locations.into_iter().filter(|c| { !c.x.is_negative() && !c.y.is_negative() }).collect();
+        locations = locations
+            .into_iter()
+            .filter(|c| !c.x.is_negative() && !c.y.is_negative())
+            .collect();
         // filter out all locations with coordinates beyond maximum
-        locations = locations.into_iter().filter(|c| { c.x <= self.max && c.y <= self.max }).collect();
+        locations = locations
+            .into_iter()
+            .filter(|c| c.x <= self.max && c.y <= self.max)
+            .collect();
+        locations
+    }
+
+    /// Return a vector of possible destinations within a specified range.
+    pub fn within_range(&self, range: i64) -> Vec<Location> {
+        let mut locations: Vec<Location> = Vec::new();
+        // min and max x values
+        let min_max = |l: i64| -> Vec<i64> {
+            // capture range
+            let min = match l - range {
+                x if x.is_negative() => 0,
+                x => x,
+            };
+
+            let max = match l + range {
+                x if x > self.max => self.max,
+                x => x,
+            };
+            (min..=max).collect()
+        };
+
+        for x in min_max(self.x) {
+            for y in min_max(self.y) {
+                locations.push(Location {
+                    max: self.max,
+                    x,
+                    y,
+                });
+            }
+        }
+
         locations
     }
 
@@ -168,11 +204,159 @@ impl Location {
     }
 
     pub fn new(max: i64) -> Location {
-        let l = Location {
-            max,
-            x: 0,
-            y: 0,
+        Location { max, x: 0, y: 0 }
+    }
+}
+
+mod tests {
+    #[test]
+    fn benchmark_movement_calc() {
+        let l = crate::Location::new_random(255);
+
+        let start = std::time::Instant::now();
+        for _ in 0..1 {
+            let _a = l.within_range(1);
+        }
+        let stop = std::time::Instant::now();
+        println!("within_range: {:?}", stop - start);
+
+        let start = std::time::Instant::now();
+        for _ in 0..1 {
+            let _a = l.nearby();
+        }
+        let stop = std::time::Instant::now();
+        println!("nearby: {:?}", stop - start);
+    }
+
+    #[test]
+    fn location_nearby() {
+        use crate::Location;
+        let max = 255;
+
+        // Location 0, 0
+        let mut l = Location { max, x: 0, y: 0 };
+
+        let mut expected: Vec<Location> = Vec::new();
+        expected.push(Location { max, x: 0, y: 1 });
+        expected.push(Location { max, x: 1, y: 1 });
+        expected.push(Location { max, x: 1, y: 0 });
+        let result = l.nearby();
+        assert_eq!(result.len(), expected.len());
+        for location in result {
+            assert!(expected.contains(&location));
+        }
+
+        // Location 1, 1
+        (l.x, l.y) = (1, 1);
+        expected.clear();
+
+        let mut expected: Vec<Location> = Vec::new();
+        expected.push(Location { max, x: 0, y: 0 });
+        expected.push(Location { max, x: 0, y: 1 });
+        expected.push(Location { max, x: 0, y: 2 });
+
+        expected.push(Location { max, x: 1, y: 0 });
+        // do not include self
+        // expected.push(Location { max, x: 1, y: 1 });
+        expected.push(Location { max, x: 1, y: 2 });
+
+        expected.push(Location { max, x: 2, y: 0 });
+        expected.push(Location { max, x: 2, y: 1 });
+        expected.push(Location { max, x: 2, y: 2 });
+
+        let result = l.nearby();
+        // println!("result: {:?}", result);
+        // println!("expect: {:?}", expected);
+        assert_eq!(result.len(), expected.len());
+        for location in result {
+            assert!(expected.contains(&location));
+        }
+    }
+
+    #[test]
+    #[rustfmt::skip] // prevent expansion of simple Location struct literals
+    fn location_within_range() {
+        use crate::Location;
+
+        let max = 255;
+        let mut location = Location { max, x: 0, y: 0 };
+        let mut expected: Vec<Location> = Vec::new();
+        let mut results: Vec<Location>;
+
+        let check_results = |results: &Vec<Location>, expected: &Vec<Location>| {
+            // ensure that number of locations is the same
+            assert_eq!(results.len(), expected.len());
+
+            for l in results {
+                assert!(expected.contains(&l));
+            }
+            // reverse case in case of duplicate values
+            for l in expected {
+                assert!(results.contains(&l));
+            }
+            true
         };
-        l
+
+        // 0, 0 (lower-left corner)
+        (location.x, location.y) = (0, 0);
+        expected.clear();
+        expected.push(Location { max, x: 0, y: 0 });
+        expected.push(Location { max, x: 0, y: 1 });
+        expected.push(Location { max, x: 1, y: 1 });
+        expected.push(Location { max, x: 1, y: 0 });
+
+        results = location.within_range(1);
+        check_results(&results, &expected);
+
+        // 255, 0 (lower-right corner)
+        (location.x, location.y) = (255, 0);
+        expected.clear();
+        expected.push(Location { max, x: 255, y: 0 });
+        expected.push(Location { max, x: 254, y: 0 });
+        expected.push(Location { max, x: 255, y: 1 });
+        expected.push(Location { max, x: 254, y: 1 });
+
+        results = location.within_range(1);
+        check_results(&results, &expected);
+
+       // 0, 255 (upper-left corner)
+        (location.x, location.y) = (0, 255);
+        expected.clear();
+        expected.push(Location { max, x: 0, y: 254 });
+        expected.push(Location { max, x: 0, y: 255 });
+        expected.push(Location { max, x: 1, y: 254 });
+        expected.push(Location { max, x: 1, y: 255 });
+
+        results = location.within_range(1);
+        check_results(&results, &expected);
+        
+        // 255, 255 (upper-right corner)
+        (location.x, location.y) = (255, 255);
+        expected.clear();
+        expected.push(Location { max, x: 255, y: 255 });
+        expected.push(Location { max, x: 255, y: 254 });
+        expected.push(Location { max, x: 254, y: 254 });
+        expected.push(Location { max, x: 254, y: 255 });
+
+        results = location.within_range(1);
+        check_results(&results, &expected);
+
+        // 1, 1
+        (location.x, location.y) = (1, 1);
+        expected.clear();
+        expected.push(Location { max, x: 0, y: 0 });
+        expected.push(Location { max, x: 0, y: 1 });
+        expected.push(Location { max, x: 0, y: 2 });
+
+        expected.push(Location { max, x: 1, y: 0 });
+        expected.push(Location { max, x: 1, y: 1 });
+        expected.push(Location { max, x: 1, y: 2 });
+
+        expected.push(Location { max, x: 2, y: 0 });
+        expected.push(Location { max, x: 2, y: 1 });
+        expected.push(Location { max, x: 2, y: 2 });
+
+        results = location.within_range(1);
+        check_results(&results, &expected);
     }
 }
