@@ -29,7 +29,6 @@ pub struct Requirements {
 
 impl Plant {
     pub fn new(kind: PlantKind, board: &Board) -> Plant {
-
         // determine age_max
         let age_max = match kind {
             PlantKind::Fern => 12,
@@ -104,6 +103,15 @@ pub enum PlantKind {
     Tree,
 }
 
+impl PlantKind {
+    pub fn icon(&self) -> char {
+        match self {
+            PlantKind::Fern => '🌿',
+            PlantKind::Tree => '🌲',
+        }
+    }
+}
+
 impl Evolve for Plant {
     fn evolve(&mut self, section: &mut BoardSection) {
         // Save current state for comparison after evolution
@@ -116,7 +124,7 @@ impl Evolve for Plant {
                 for o in offspring {
                     self.offspring.push(o);
                 }
-            },
+            }
             None => (),
         }
         if self.health == 0 && previous.health != 0 {
@@ -158,7 +166,7 @@ impl Lifespan for Plant {
                         let spawn_chance: f64 = rand::thread_rng().gen();
                         // if self.health == self.health_max {
                         // must be mature to reproduce
-                        let size_percent =  self.size as f64 / self.size_max as f64;
+                        let size_percent = self.size as f64 / self.size_max as f64;
                         if size_percent > 0.8 {
                             self.offspring = match spawn_chance {
                                 chance if chance < self.offspring_chance => self.propagate(1),
@@ -170,7 +178,7 @@ impl Lifespan for Plant {
                         section.conditions.moisture = 0;
                         self.damage(1);
                     }
-                },
+                }
                 _ => (),
             }
         }
@@ -197,7 +205,8 @@ impl Lifespan for Plant {
     fn propagate(&mut self, num: i64) -> Vec<Plant> {
         // determine nearby location
         let mut rng = StdRng::from_entropy();
-        let locations = self.location.nearby();
+        // let locations = self.location.nearby();
+        let locations = self.location.within_range(1);
         let pick = rng.gen_range(0..locations.len());
         let location = locations[pick].clone();
 
