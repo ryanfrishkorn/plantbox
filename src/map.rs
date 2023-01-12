@@ -100,7 +100,10 @@ impl Map {
 
         // check that row len is divisible
         if (row.len() % scale as usize) != 0 {
-            panic!("map size and scale factor are not evenly divisible - row.len(): {}", row.len());
+            panic!(
+                "map size and scale factor are not evenly divisible - row.len(): {}",
+                row.len()
+            );
         }
 
         // split and process chunks
@@ -120,7 +123,12 @@ impl Map {
             } else {
                 // gather all characters that are not default
                 // let initials: Vec<char> = s.clone().chars().into_iter().filter_map(|c| { return if c != '.' { Some(c) } else { None } }).collect();
-                let initials: Vec<char> = s.clone().chars().into_iter().filter_map(|c| { return if c != '⬛' { Some(c) } else { None } }).collect();
+                let initials: Vec<char> = s
+                    .clone()
+                    .chars()
+                    .into_iter()
+                    .filter_map(|c| return if c != '⬛' { Some(c) } else { None })
+                    .collect();
                 // print!("{:?} ", initials);
 
                 // look for rock and give it precedence, otherwise print first non-empty char

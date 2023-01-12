@@ -164,14 +164,16 @@ impl Location {
     /// Return a vector of possible destinations within a specified range.
     pub fn within_range(&self, range: i64) -> Vec<Location> {
         let mut locations: Vec<Location> = Vec::new();
-        // min and max x values
+
+        // This is a closure to return a vector of possible values. These values are
+        // determined by capturing the "range" parameter of the containing function.
         let min_max = |l: i64| -> Vec<i64> {
-            // capture range
+            // this is the minimum possible including zero
             let min = match l - range {
                 x if x.is_negative() => 0,
                 x => x,
             };
-
+            // this is the maximum possible value limited by board size
             let max = match l + range {
                 x if x > self.max => self.max,
                 x => x,
@@ -181,6 +183,10 @@ impl Location {
 
         for x in min_max(self.x) {
             for y in min_max(self.y) {
+                // exclude current location from results
+                if self.x == x && self.y == y {
+                    continue;
+                }
                 locations.push(Location {
                     max: self.max,
                     x,
@@ -211,7 +217,9 @@ impl Location {
 mod tests {
     #[test]
     fn benchmark_movement_calc() {
-        let l = crate::Location::new_random(255);
+        use crate::Location;
+
+        let l = Location::new_random(255);
 
         let start = std::time::Instant::now();
         for _ in 0..1 {
@@ -300,7 +308,6 @@ mod tests {
         // 0, 0 (lower-left corner)
         (location.x, location.y) = (0, 0);
         expected.clear();
-        expected.push(Location { max, x: 0, y: 0 });
         expected.push(Location { max, x: 0, y: 1 });
         expected.push(Location { max, x: 1, y: 1 });
         expected.push(Location { max, x: 1, y: 0 });
@@ -311,7 +318,6 @@ mod tests {
         // 255, 0 (lower-right corner)
         (location.x, location.y) = (255, 0);
         expected.clear();
-        expected.push(Location { max, x: 255, y: 0 });
         expected.push(Location { max, x: 254, y: 0 });
         expected.push(Location { max, x: 255, y: 1 });
         expected.push(Location { max, x: 254, y: 1 });
@@ -323,7 +329,6 @@ mod tests {
         (location.x, location.y) = (0, 255);
         expected.clear();
         expected.push(Location { max, x: 0, y: 254 });
-        expected.push(Location { max, x: 0, y: 255 });
         expected.push(Location { max, x: 1, y: 254 });
         expected.push(Location { max, x: 1, y: 255 });
 
@@ -333,7 +338,6 @@ mod tests {
         // 255, 255 (upper-right corner)
         (location.x, location.y) = (255, 255);
         expected.clear();
-        expected.push(Location { max, x: 255, y: 255 });
         expected.push(Location { max, x: 255, y: 254 });
         expected.push(Location { max, x: 254, y: 254 });
         expected.push(Location { max, x: 254, y: 255 });
@@ -349,7 +353,6 @@ mod tests {
         expected.push(Location { max, x: 0, y: 2 });
 
         expected.push(Location { max, x: 1, y: 0 });
-        expected.push(Location { max, x: 1, y: 1 });
         expected.push(Location { max, x: 1, y: 2 });
 
         expected.push(Location { max, x: 2, y: 0 });
