@@ -16,6 +16,7 @@ pub struct Plant {
     pub messages: Vec<String>,
     pub offspring: Vec<Plant>,
     pub offspring_chance: f64,
+    pub offspring_range: i64,
     pub requirements: Requirements,
     pub size: i64,
     pub size_max: i64,
@@ -29,6 +30,7 @@ pub struct Requirements {
 
 impl Plant {
     pub fn new(kind: PlantKind, board: &Board) -> Plant {
+        // FIXME - this should be moved to proper logic, struct, or trait
         // determine age_max
         let age_max = match kind {
             PlantKind::Fern => 12,
@@ -45,6 +47,11 @@ impl Plant {
         let offspring_chance = match kind {
             PlantKind::Fern => 0.2,
             PlantKind::Tree => 0.2,
+        };
+
+        let offspring_range = match kind {
+            PlantKind::Fern => 1,
+            PlantKind::Tree => 3,
         };
 
         // determine requirements based on kind
@@ -76,6 +83,7 @@ impl Plant {
             messages: Vec::new(),
             offspring: Vec::new(),
             offspring_chance,
+            offspring_range,
             requirements,
             size: 1,
             size_max,
@@ -205,8 +213,13 @@ impl Lifespan for Plant {
     fn propagate(&mut self, num: i64) -> Vec<Plant> {
         // determine nearby location
         let mut rng = StdRng::from_entropy();
-        // let locations = self.location.nearby();
-        let locations = self.location.within_range(1);
+
+        // Optimize for now, since nearby() benchmarks faster than within_range()
+        // In the future, establish pseudorandom seed to test that benchmark was accurate.
+        let locations = match self.offspring_range {
+            1 => self.location.nearby(),
+            _ => self.location.within_range(self.offspring_range),
+        };
         let pick = rng.gen_range(0..locations.len());
         let location = locations[pick].clone();
 
@@ -222,6 +235,7 @@ impl Lifespan for Plant {
             messages: Vec::new(),
             offspring: Vec::new(),
             offspring_chance: self.offspring_chance,
+            offspring_range: self.offspring_range,
             requirements: self.requirements.clone(),
             size: 1,
             size_max: self.size_max,

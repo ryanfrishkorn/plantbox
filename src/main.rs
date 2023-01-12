@@ -22,6 +22,7 @@ fn main() {
     const BOARD_MAX: usize = (BOARD_SIZE - 1) as usize;
     const BOARD_UNIT: i64 = 16;
 
+    let time_start = time::Instant::now();
     // let map_scale: i64 = BOARD_SIZE / (BOARD_UNIT) / (2 * 2); // this produces 64x64
     let map_scale: i64 = BOARD_SIZE / (BOARD_UNIT) / 2; // this produces 32x32
                                                         // let map_scale: i64 = 1; // this produces a map of actual size
@@ -74,6 +75,7 @@ fn main() {
         };
 
         // generate new map
+        // let mut map = Map::new(board.clone());
         let mut map = Map::new(board.clone());
 
         // collect locations of plants that are alive
@@ -123,7 +125,7 @@ fn main() {
         sun.apply_global(&mut board);
 
         // rain is consistent everywhere for now
-        let rain = Effect::Moisture(5);
+        let rain = Effect::Moisture(6);
         rain.apply_global(&mut board);
 
         // evolve all entities
@@ -151,6 +153,34 @@ fn main() {
         // bring out your dead
         entities_plants.retain(|e| e.alive());
 
+        // show plant statistics
+        let fern_count = entities_plants
+            .iter()
+            .filter(|p| match p.kind {
+                PlantKind::Fern => true,
+                _ => false,
+            })
+            .count();
+        // show plant statistics
+        let tree_count = entities_plants
+            .iter()
+            .filter(|p| match p.kind {
+                PlantKind::Tree => true,
+                _ => false,
+            })
+            .count();
+
+        // obtain counts for statistics
+        let fern_percent = (fern_count as f32 / entities_plants.len() as f32) * 100.0;
+        let tree_percent = (tree_count as f32 / entities_plants.len() as f32) * 100.0;
+        print!(
+            "{} ferns: {} {:.1}% trees: {} {:.1}% \n",
+            Local::now(),
+            fern_count,
+            fern_percent,
+            tree_count,
+            tree_percent,
+        );
         print!(
             "{} plants: {}/{}\n",
             Local::now(),
@@ -174,6 +204,11 @@ fn main() {
         tick += 1;
         sleep(sleep_duration);
     }
+    let time_stop = time::Instant::now();
+    let time_elapsed = time_stop - time_start;
+    let ticks_per_second = tick as f32 / time_elapsed.as_secs() as f32;
+    print!("program execution time: {:?}\n", time_elapsed);
+    print!("ticks per second: {}\n", ticks_per_second);
 }
 
 fn clear_screen() {
