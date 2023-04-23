@@ -41,8 +41,8 @@ impl Plant {
 
         // will it burn?
         let flammability_chance = match kind {
-            PlantKind::Fern => 1.0,
-            PlantKind::Tree => 1.0,
+            PlantKind::Fern => 0.99996,
+            PlantKind::Tree => 0.99999,
         };
 
         // determine health_max
