@@ -41,8 +41,8 @@ impl Plant {
 
         // will it burn?
         let flammability_chance = match kind {
-            PlantKind::Fern => 0.98,
-            PlantKind::Tree => 0.997,
+            PlantKind::Fern => 1.0,
+            PlantKind::Tree => 1.0,
         };
 
         // determine health_max
@@ -174,13 +174,12 @@ impl Lifespan for Plant {
 
             // Burn her anyway!
             if self.on_fire {
-                let calc_damage = self.health_max as f64 * 0.01;
+                let calc_damage_rand: f64 = rand::thread_rng().gen();
+                let calc_damage = (self.health_max as f64 * calc_damage_rand) * 0.1;
                 self.damage(calc_damage as i64);
                 if self.alive() == false {
                     return None;
                 }
-
-                // otherwise share the heat
             }
 
             // Respiration
