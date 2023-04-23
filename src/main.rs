@@ -25,31 +25,34 @@ fn main() {
     let time_start = time::Instant::now();
     let map_size: i64 = 64;
     let map_scale: i64 = BOARD_SIZE / map_size; // this produces 64x64
-    let plant_limit: i64 = BOARD_SIZE * BOARD_SIZE;
 
     // Iteration and sleep
-    let mut sleep_duration = time::Duration::from_millis(0);
+    let sleep_duration = time::Duration::from_millis(0);
     let sleep_duration_burn = time::Duration::from_millis(100);
     let mut tick: u64 = 0;
     let tick_max: u64 = 10000; // 0 for no limit
 
     let mut entities_plants: Vec<Plant> = Vec::new();
     let mut entities_rocks: Vec<Rock> = Vec::new();
+    let ferns_starting = 8;
+    let trees_starting = 8;
+    let entities_rocks_count = BOARD_SIZE / 8;
+    let plant_limit: i64 = (BOARD_SIZE * BOARD_SIZE) - (entities_rocks_count) - ((BOARD_SIZE * BOARD_SIZE) as f64 * 0.1) as i64;
     let mut entities_extinct = false;
 
     // Create a matrix
     let mut board = Board::new(BOARD_MAX as i64);
 
     // Add some plants
-    for _ in 0..8 {
+    for _ in 0..ferns_starting {
         entities_plants.push(Plant::new(PlantKind::Fern, &board));
     }
-    for _ in 0..8 {
+    for _ in 0..trees_starting {
         entities_plants.push(Plant::new(PlantKind::Tree, &board));
     }
 
     // Rock objects
-    for _ in 0..30 {
+    for _ in 0..entities_rocks_count {
         entities_rocks.push(Rock {
             location: Location::new_random(BOARD_MAX as i64),
         });
@@ -61,6 +64,7 @@ fn main() {
         }
         clear_screen();
 
+        let mut something_burning = false;
         // establish prefix for log output
         let timestamp = || {
             if tick_max == 0 {
@@ -86,6 +90,7 @@ fn main() {
         for e in entities_plants.iter().filter(|e| e.health > 0) {
             // determine initial based on plant kind
             if e.on_fire {
+                something_burning = true;
                 map.plot_entity(&e.location, '🔥');
             } else {
                 map.plot_entity(&e.location, e.kind.icon());
@@ -200,7 +205,6 @@ fn main() {
 
         // slash and burn opportunity
         if entities_plants.len() > plant_limit as usize {
-            sleep_duration = sleep_duration_burn;
             for e in &mut entities_plants {
                 let flammable: f64 = rand::thread_rng().gen();
                 if flammable < e.flammability_chance {
@@ -229,7 +233,13 @@ fn main() {
         */
 
         tick += 1;
-        sleep(sleep_duration);
+
+        // slow down if things are burning
+        if something_burning {
+            sleep(sleep_duration_burn);
+        } else {
+            sleep(sleep_duration);
+        }
     }
     let time_stop = time::Instant::now();
     let time_elapsed = time_stop - time_start;
