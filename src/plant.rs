@@ -9,6 +9,7 @@ use crate::evolve::{Evolve, Lifespan};
 pub struct Plant {
     pub age: i64,
     pub age_max: i64,
+    pub flammability_chance: f64,
     pub health: i64,
     pub health_max: i64,
     pub kind: PlantKind,
@@ -17,6 +18,7 @@ pub struct Plant {
     pub offspring: Vec<Plant>,
     pub offspring_chance: f64,
     pub offspring_range: i64,
+    pub on_fire: bool,
     pub requirements: Requirements,
     pub size: i64,
     pub size_max: i64,
@@ -37,6 +39,12 @@ impl Plant {
             PlantKind::Tree => 80,
         };
 
+        // will it burn?
+        let flammability_chance = match kind {
+            PlantKind::Fern => 0.98,
+            PlantKind::Tree => 0.997,
+        };
+
         // determine health_max
         let health_max = match kind {
             PlantKind::Fern => 10,
@@ -53,6 +61,8 @@ impl Plant {
             PlantKind::Fern => 1,
             PlantKind::Tree => 3,
         };
+
+        let on_fire = false;
 
         // determine requirements based on kind
         let requirements = match kind {
@@ -76,6 +86,8 @@ impl Plant {
         let plant = Plant {
             age: 0,
             age_max,
+            flammability_chance,
+            on_fire,
             health: 1,
             health_max,
             kind,
@@ -151,6 +163,7 @@ impl Lifespan for Plant {
 
     fn biology(&mut self, section: &mut BoardSection) -> Option<Vec<Plant>> {
         self.age += 1;
+
         if self.alive() {
             // death upon exhaustion of lifespan
             if self.age > self.age_max {
@@ -159,10 +172,21 @@ impl Lifespan for Plant {
                 return None;
             }
 
+            // Burn her anyway!
+            if self.on_fire {
+                let calc_damage = self.health_max as f64 * 0.01;
+                self.damage(calc_damage as i64);
+                if self.alive() == false {
+                    return None;
+                }
+
+                // otherwise share the heat
+            }
+
             // Respiration
             match self.requirements.moisture {
                 Effect::Moisture(v) => {
-                    if section.conditions.moisture >= v as i64 {
+                    if section.conditions.moisture >= v as i64 && self.on_fire == false {
                         // consume moisture from section
                         section.conditions.moisture -= v as i64;
                         // TODO: grow at this juncture (or signal immediately)
@@ -226,6 +250,7 @@ impl Lifespan for Plant {
         // create new seedling
         let sprout = Plant {
             age: 0,
+            flammability_chance: self.flammability_chance,
             health: 1,
             health_max: self.health_max,
             kind: self.kind.clone(),
@@ -236,6 +261,7 @@ impl Lifespan for Plant {
             offspring: Vec::new(),
             offspring_chance: self.offspring_chance,
             offspring_range: self.offspring_range,
+            on_fire: false,
             requirements: self.requirements.clone(),
             size: 1,
             size_max: self.size_max,

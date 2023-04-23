@@ -6,6 +6,7 @@ pub mod rock;
 
 // external
 use chrono::Local;
+use rand::Rng;
 use std::thread::sleep;
 use std::time;
 
@@ -18,23 +19,27 @@ use rock::Rock;
 
 fn main() {
     // Map and Board values are interdependent
-    const BOARD_SIZE: i64 = 256; // doubling this should result in 4x plant_limit
+    const BOARD_SIZE: i64 = 512; // doubling this should result in 4x plant_limit
     const BOARD_MAX: usize = (BOARD_SIZE - 1) as usize;
-    const BOARD_UNIT: i64 = 16;
+    const BOARD_UNIT: i64 = BOARD_SIZE / 32;
+    // const BOARD_UNIT: i64 = 32;
 
     let time_start = time::Instant::now();
-    // let map_scale: i64 = BOARD_SIZE / (BOARD_UNIT) / (2 * 2); // this produces 64x64
-    let map_scale: i64 = BOARD_SIZE / (BOARD_UNIT) / 2; // this produces 32x32
-                                                        // let map_scale: i64 = 1; // this produces a map of actual size
-                                                        // let plant_limit_base: i64 = 62; // derived from theoretical board of 8
-    let plant_limit_base: i64 = 250; // derived from theoretical board of 16
+    let map_scale: i64 = BOARD_SIZE / (BOARD_UNIT) / (2 * 2); // this produces 64x64
+    // this produces 32x32
+    // let map_scale: i64 = BOARD_SIZE / (BOARD_UNIT) / 2;
+    // let map_scale: i64 = 1; // this produces a map of actual size
+    // let plant_limit_base: i64 = 62; // derived from theoretical board of 8
+    let plant_limit_base: i64 = 256; // derived from theoretical board of 16
+    // let plant_limit_base: i64 = BOARD_SIZE; // derived from theoretical board of 16
     let plant_limit: i64 =
         ((BOARD_SIZE / BOARD_UNIT) * (BOARD_SIZE / BOARD_UNIT)) * plant_limit_base;
 
     // Iteration and sleep
-    let sleep_duration = time::Duration::from_millis(0);
+    let mut sleep_duration;
+    let sleep_duration_burn = time::Duration::from_millis(1000);
     let mut tick: u64 = 0;
-    let tick_max: u64 = 0; // 0 for no limit
+    let tick_max: u64 = 10000; // 0 for no limit
 
     let mut entities_plants: Vec<Plant> = Vec::new();
     let mut entities_rocks: Vec<Rock> = Vec::new();
@@ -64,7 +69,13 @@ fn main() {
         clear_screen();
 
         // establish prefix for log output
-        let timestamp = || format!("{} tick: {}", Local::now(), tick);
+        let timestamp = || {
+            if tick_max == 0 {
+                return format!("{} tick: {}", Local::now(), tick).to_string();
+            } else {
+                return format!("{} tick: {}/{}", Local::now(), tick, tick_max).to_string();
+            }
+        };
         let indent = "    ".to_string();
         let indent_dyn = |level: i64| -> String {
             let mut indent_string = "".to_string();
@@ -81,7 +92,11 @@ fn main() {
         // collect locations of plants that are alive
         for e in entities_plants.iter().filter(|e| e.health > 0) {
             // determine initial based on plant kind
-            map.plot_entity(&e.location, e.kind.icon());
+            if e.on_fire {
+                map.plot_entity(&e.location, '🔥');
+            } else {
+                map.plot_entity(&e.location, e.kind.icon());
+            }
         }
 
         // Plot rock entities last so they are not overwritten by plants and can take display precedence
@@ -133,7 +148,9 @@ fn main() {
             e.evolve(&mut board.matrix[e.location.x as usize][e.location.y as usize]);
         }
 
+        // let plant_count = entities_plants.len();
         for e in &mut entities_plants {
+            // self.x = rand::thread_rng().gen_range(0..=self.max);
             e.evolve(&mut board.matrix[e.location.x as usize][e.location.y as usize]);
         }
         let mut new_plants: Vec<Plant> = Vec::new();
@@ -188,18 +205,33 @@ fn main() {
             plant_limit
         );
 
-        // clear and replant if plant limit is reached
+        // slash and burn opportunity
         if entities_plants.len() > plant_limit as usize {
-            break;
+            sleep_duration = sleep_duration_burn;
+            for e in &mut entities_plants {
+                let flammable: f64 = rand::thread_rng().gen();
+                if flammable < e.flammability_chance {
+                    e.on_fire = true;
+                }
+            }
+
+        } else {
+            sleep_duration = time::Duration::from_millis(0);
         }
+
         // pause, clear, and replant if everything is extinct
         if entities_plants.len() == 0 {
+            print!("{} Everything is extinct.\n", Local::now());
+            break;
+        }
+
+        /* Replant
             print!("{} Everything is extinct. Replanting...\n", Local::now());
             sleep(sleep_duration * 5);
             entities_plants.clear();
             entities_plants.push(Plant::new(PlantKind::Fern, &board));
             entities_plants.push(Plant::new(PlantKind::Tree, &board));
-        }
+        */
 
         tick += 1;
         sleep(sleep_duration);
