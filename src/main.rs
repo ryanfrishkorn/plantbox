@@ -19,30 +19,23 @@ use rock::Rock;
 
 fn main() {
     // Map and Board values are interdependent
-    const BOARD_SIZE: i64 = 512; // doubling this should result in 4x plant_limit
+    const BOARD_SIZE: i64 = 256; // doubling this should result in 4x plant_limit
     const BOARD_MAX: usize = (BOARD_SIZE - 1) as usize;
-    const BOARD_UNIT: i64 = BOARD_SIZE / 32;
-    // const BOARD_UNIT: i64 = 32;
 
     let time_start = time::Instant::now();
-    let map_scale: i64 = BOARD_SIZE / (BOARD_UNIT) / (2 * 2); // this produces 64x64
-    // this produces 32x32
-    // let map_scale: i64 = BOARD_SIZE / (BOARD_UNIT) / 2;
-    // let map_scale: i64 = 1; // this produces a map of actual size
-    // let plant_limit_base: i64 = 62; // derived from theoretical board of 8
-    let plant_limit_base: i64 = 256; // derived from theoretical board of 16
-    // let plant_limit_base: i64 = BOARD_SIZE; // derived from theoretical board of 16
-    let plant_limit: i64 =
-        ((BOARD_SIZE / BOARD_UNIT) * (BOARD_SIZE / BOARD_UNIT)) * plant_limit_base;
+    let map_size: i64 = 64;
+    let map_scale: i64 = BOARD_SIZE / map_size; // this produces 64x64
+    let plant_limit: i64 = BOARD_SIZE * BOARD_SIZE;
 
     // Iteration and sleep
-    let mut sleep_duration;
-    let sleep_duration_burn = time::Duration::from_millis(1000);
+    let mut sleep_duration = time::Duration::from_millis(0);
+    let sleep_duration_burn = time::Duration::from_millis(100);
     let mut tick: u64 = 0;
     let tick_max: u64 = 10000; // 0 for no limit
 
     let mut entities_plants: Vec<Plant> = Vec::new();
     let mut entities_rocks: Vec<Rock> = Vec::new();
+    let mut entities_extinct = false;
 
     // Create a matrix
     let mut board = Board::new(BOARD_MAX as i64);
@@ -215,14 +208,16 @@ fn main() {
                 }
             }
 
-        } else {
-            sleep_duration = time::Duration::from_millis(0);
         }
 
-        // pause, clear, and replant if everything is extinct
-        if entities_plants.len() == 0 {
+        if entities_extinct {
             print!("{} Everything is extinct.\n", Local::now());
             break;
+        }
+
+        // check for extinction to break next tick
+        if entities_plants.len() == 0 {
+            entities_extinct = true;
         }
 
         /* Replant
