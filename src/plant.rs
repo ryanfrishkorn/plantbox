@@ -83,7 +83,7 @@ impl Plant {
         };
 
         // Plant object
-        let plant = Plant {
+        Plant {
             age: 0,
             age_max,
             flammability_chance,
@@ -99,8 +99,7 @@ impl Plant {
             requirements,
             size: 1,
             size_max,
-        };
-        plant
+        }
     }
 
     pub fn summary(&self) -> String {
@@ -139,13 +138,10 @@ impl Evolve for Plant {
         let offspring = self.biology(section);
 
         // check for returned propagation
-        match offspring {
-            Some(offspring) => {
-                for o in offspring {
-                    self.offspring.push(o);
-                }
+        if let Some(offspring) = offspring {
+            for o in offspring {
+                self.offspring.push(o);
             }
-            None => (),
         }
         if self.health == 0 && previous.health != 0 {
             self.messages.push(format!("The {:?} perishes", self.kind));
@@ -177,32 +173,30 @@ impl Lifespan for Plant {
                 let calc_damage_rand: f64 = rand::thread_rng().gen();
                 let calc_damage = (self.health_max as f64 * calc_damage_rand) * 0.1;
                 self.damage(calc_damage as i64);
-                if self.alive() == false {
+                if !self.alive() {
                     return None;
                 }
             }
 
             // Respiration
-            match self.requirements.moisture {
-                Effect::Moisture(v) => {
-                    if section.conditions.moisture >= v as i64 && self.on_fire == false {
-                        // consume moisture from section
-                        section.conditions.moisture -= v as i64;
-                        // TODO: grow at this juncture (or signal immediately)
-                        self.grow();
-                        // TODO: we should probably bind entities to a BoardSection
-                        // then we can easily add plants from this scope.
+            if let Effect::Moisture(v) = self.requirements.moisture {
+                if section.conditions.moisture >= v && !self.on_fire {
+                    // consume moisture from section
+                    section.conditions.moisture -= v;
+                    // TODO: grow at this juncture (or signal immediately)
+                    self.grow();
+                    // TODO: we should probably bind entities to a BoardSection
+                    // then we can easily add plants from this scope.
 
-                        // establish chance to propagate
-                        let spawn_chance: f64 = rand::thread_rng().gen();
-                        // if self.health == self.health_max {
-                        // must be mature to reproduce
-                        let size_percent = self.size as f64 / self.size_max as f64;
-                        if size_percent > 0.8 {
-                            self.offspring = match spawn_chance {
-                                chance if chance < self.offspring_chance => self.propagate(1),
-                                _ => vec![],
-                            }
+                    // establish chance to propagate
+                    let spawn_chance: f64 = rand::thread_rng().gen();
+                    // if self.health == self.health_max {
+                    // must be mature to reproduce
+                    let size_percent = self.size as f64 / self.size_max as f64;
+                    if size_percent > 0.8 {
+                        self.offspring = match spawn_chance {
+                            chance if chance < self.offspring_chance => self.propagate(1),
+                            _ => vec![],
                         }
                     } else {
                         // use all available moisture even though we take damage
@@ -210,17 +204,13 @@ impl Lifespan for Plant {
                         self.damage(1);
                     }
                 }
-                _ => (),
             }
         }
         None
     }
 
     fn damage(&mut self, damage: i64) {
-        self.health = match self.health.checked_sub(damage) {
-            Some(v) => v,
-            None => 0,
-        }
+        self.health = self.health.checked_sub(damage).unwrap_or(0); 
     }
 
     fn grow(&mut self) {
@@ -267,9 +257,9 @@ impl Lifespan for Plant {
         };
         // change to spawn an extra offspring if health is at max
         let mut offspring: Vec<Plant> = Vec::new();
-        for _ in 0..num as i64 {
+        for _ in 0..num {
             offspring.push(sprout.clone());
         }
-        return offspring;
+        offspring
     }
 }

@@ -24,8 +24,8 @@ impl Board {
                     },
                     location: Location {
                         max: size,
-                        x: x as i64,
-                        y: y as i64,
+                        x,
+                        y,
                     },
                 };
                 row.push(s);
@@ -85,10 +85,10 @@ impl Effect {
     pub fn apply_to_section(&self, section: &mut BoardSection) {
         match self {
             Effect::Light(v) => {
-                section.conditions.light = *v as i64;
+                section.conditions.light = *v;
             }
             Effect::Moisture(v) => {
-                section.conditions.moisture = *v as i64;
+                section.conditions.moisture = *v;
             }
             _ => (),
         }
@@ -146,18 +146,12 @@ impl Location {
         locations.push(loc.clone());
         // d (0, 1)
         loc.y -= 1;
-        locations.push(loc.clone());
+        locations.push(loc);
 
         // filter out all locations with negative coordinates
-        locations = locations
-            .into_iter()
-            .filter(|c| !c.x.is_negative() && !c.y.is_negative())
-            .collect();
+        locations.retain(|c| !c.x.is_negative() && !c.y.is_negative());
         // filter out all locations with coordinates beyond maximum
-        locations = locations
-            .into_iter()
-            .filter(|c| c.x <= self.max && c.y <= self.max)
-            .collect();
+        locations.retain(|c| c.x <= self.max && c.y <= self.max);
         locations
     }
 
