@@ -61,7 +61,7 @@ impl Map {
             for c in row {
                 print!("{} ", c);
             }
-            print!("\n");
+            println!();
         }
     }
 
@@ -79,7 +79,7 @@ impl Map {
             for c in outer {
                 print!("{:<2}", c);
             }
-            print!("\n");
+            println!();
         }
 
         // outer iteration print all MAP indices for easy debugging
@@ -90,7 +90,7 @@ impl Map {
                 for (i, _inner) in outer.iter().enumerate() {
                     print!("{:>2} ", i);
                 }
-                print!("\n");
+                println!();
             }
         }
     }
@@ -122,18 +122,12 @@ impl Map {
                 reduced.push('⬛');
             } else {
                 // gather all characters that are not default
-                // let initials: Vec<char> = s.clone().chars().into_iter().filter_map(|c| { return if c != '.' { Some(c) } else { None } }).collect();
-                let initials: Vec<char> = s
-                    .clone()
-                    .chars()
-                    .into_iter()
-                    .filter_map(|c| return if c != '⬛' { Some(c) } else { None })
-                    .collect();
+                let initials: Vec<char> = s.clone().chars().filter(|c| *c != '⬛' ).collect();
                 // print!("{:?} ", initials);
 
                 // look for rock and give it precedence, otherwise print first non-empty char
                 let mut i: char = '🪨';
-                if initials.contains(&'🪨') == false {
+                if !initials.contains(&'🪨') {
                     i = match initials.first() {
                         Some(c) => *c,
                         _ => 'X',
@@ -158,7 +152,7 @@ impl Map {
         for row in &m {
             // self.matrix_scaled.clear();
             // reduce x-axis and push to row
-            let row_scaled = self.reduce_row(&row, scale);
+            let row_scaled = self.reduce_row(row, scale);
             self.matrix_scaled.push(row_scaled);
         }
 

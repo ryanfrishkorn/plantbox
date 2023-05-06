@@ -23,7 +23,7 @@ fn main() {
     const BOARD_MAX: usize = (BOARD_SIZE - 1) as usize;
 
     let time_start = time::Instant::now();
-    let map_size: i64 = 64;
+    let map_size: i64 = 32;
     let map_scale: i64 = BOARD_SIZE / map_size; // this produces 64x64
 
     // Iteration and sleep
@@ -66,11 +66,11 @@ fn main() {
 
         let mut something_burning = false;
         // establish prefix for log output
-        let timestamp = || {
+        let timestamp = || -> String {
             if tick_max == 0 {
-                return format!("{} tick: {}", Local::now(), tick).to_string();
+                format!("{} tick: {}", Local::now(), tick)
             } else {
-                return format!("{} tick: {}/{}", Local::now(), tick, tick_max).to_string();
+                format!("{} tick: {}/{}", Local::now(), tick, tick_max)
             }
         };
         let indent = "    ".to_string();
@@ -105,10 +105,10 @@ fn main() {
         println!("map_scale: {}", map_scale);
 
         // print status
-        print!("{}\n", timestamp());
+        println!("{}", timestamp());
         for e in &mut entities_plants {
             for m in &e.messages {
-                print!("{} {}\n", indent_dyn(1), m);
+                println!("{} {}", indent_dyn(1), m);
             }
             e.messages.clear();
             if e.alive() {
@@ -120,7 +120,7 @@ fn main() {
         // show first rock
         match &entities_rocks.first() {
             Some(e) => {
-                print!("{} {:?}\n", indent_dyn(1), e);
+                println!("{} {:?}", indent_dyn(1), e);
             }
             None => (),
         }
@@ -171,33 +171,27 @@ fn main() {
         // show plant statistics
         let fern_count = entities_plants
             .iter()
-            .filter(|p| match p.kind {
-                PlantKind::Fern => true,
-                _ => false,
-            })
+            .filter(|p| matches!(p.kind, PlantKind::Fern))
             .count();
         // show plant statistics
         let tree_count = entities_plants
             .iter()
-            .filter(|p| match p.kind {
-                PlantKind::Tree => true,
-                _ => false,
-            })
+            .filter(|p| matches!(p.kind, PlantKind::Tree))
             .count();
 
         // obtain counts for statistics
         let fern_percent = (fern_count as f32 / entities_plants.len() as f32) * 100.0;
         let tree_percent = (tree_count as f32 / entities_plants.len() as f32) * 100.0;
-        print!(
-            "{} ferns: {} {:.1}% trees: {} {:.1}% \n",
+        println!(
+            "{} ferns: {} {:.1}% trees: {} {:.1}% ",
             Local::now(),
             fern_count,
             fern_percent,
             tree_count,
             tree_percent,
         );
-        print!(
-            "{} plants: {}/{}\n",
+        println!(
+            "{} plants: {}/{}",
             Local::now(),
             entities_plants.len(),
             plant_limit
@@ -215,12 +209,12 @@ fn main() {
         }
 
         if entities_extinct {
-            print!("{} Everything is extinct.\n", Local::now());
+            println!("{} Everything is extinct.", Local::now());
             break;
         }
 
         // check for extinction to break next tick
-        if entities_plants.len() == 0 {
+        if entities_plants.is_empty() {
             entities_extinct = true;
         }
 
@@ -244,8 +238,8 @@ fn main() {
     let time_stop = time::Instant::now();
     let time_elapsed = time_stop - time_start;
     let ticks_per_second = tick as f32 / time_elapsed.as_secs() as f32;
-    print!("program execution time: {:?}\n", time_elapsed);
-    print!("ticks per second: {}\n", ticks_per_second);
+    println!("program execution time: {:?}", time_elapsed);
+    println!("ticks per second: {}", ticks_per_second);
 }
 
 fn clear_screen() {
